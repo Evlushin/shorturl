@@ -59,12 +59,12 @@ func Test_handlers_SetShortener(t *testing.T) {
 
 			resBodySet, err := io.ReadAll(resSet.Body)
 			require.NoError(t, err)
-			parseUrl, err := url.Parse(string(resBodySet))
+			parseURL, err := url.Parse(string(resBodySet))
 			require.NoError(t, err)
 
 			assert.Equal(t, test.want.code, resSet.StatusCode)
 			assert.Equal(t, test.want.contentType, resSet.Header.Get("Content-Type"))
-			assert.Equal(t, strconv.Itoa(len(parseUrl.String())), resSet.Header.Get("Content-Length"))
+			assert.Equal(t, strconv.Itoa(len(parseURL.String())), resSet.Header.Get("Content-Length"))
 		})
 	}
 }
@@ -104,11 +104,11 @@ func Test_handlers_GetShortener(t *testing.T) {
 
 			resBodySet, err := io.ReadAll(resSet.Body)
 			require.NoError(t, err)
-			parseUrl, err := url.Parse(string(resBodySet))
+			parseURL, err := url.Parse(string(resBodySet))
 			require.NoError(t, err)
 
-			requestGet := httptest.NewRequest(http.MethodGet, parseUrl.Path, nil)
-			requestGet.SetPathValue("id", parseUrl.Path[1:])
+			requestGet := httptest.NewRequest(http.MethodGet, parseURL.Path, nil)
+			requestGet.SetPathValue("id", parseURL.Path[1:])
 			requestGet.Header.Add("Content-Type", test.want.contentType)
 
 			wGet := httptest.NewRecorder()
