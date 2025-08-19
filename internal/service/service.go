@@ -25,19 +25,19 @@ func NewShortener(store Repository) *Shortener {
 }
 
 type GetShortenerRequest struct {
-	Id string
+	ID string
 }
 
 type GetShortenerResponse struct {
-	Url string
+	URL string
 }
 
 type SetShortenerRequest struct {
-	Url string
+	URL string
 }
 
 type SetShortenerResponse struct {
-	Id string
+	ID string
 }
 
 var (
@@ -52,7 +52,7 @@ func (f *Shortener) GetShortener(req *GetShortenerRequest) (*GetShortenerRespons
 	}
 
 	repositoryResp, err := f.store.GetShortener(&repository.GetShortenerRequest{
-		Id: req.Id,
+		ID: req.ID,
 	})
 	if err != nil {
 		if !errors.Is(err, repository.ErrGetShortenerNotFound) {
@@ -64,7 +64,7 @@ func (f *Shortener) GetShortener(req *GetShortenerRequest) (*GetShortenerRespons
 
 	if repositoryResp != nil {
 		return &GetShortenerResponse{
-			Url: repositoryResp.Url,
+			URL: repositoryResp.URL,
 		}, nil
 	}
 
@@ -73,7 +73,7 @@ func (f *Shortener) GetShortener(req *GetShortenerRequest) (*GetShortenerRespons
 
 func getShortenerValidateRequest(req *GetShortenerRequest) error {
 	validPattern := regexp.MustCompile(`^[A-Za-z0-9]{8}$`)
-	if !validPattern.MatchString(req.Id) {
+	if !validPattern.MatchString(req.ID) {
 		return ErrValidateShortenerInvalidRequest
 	}
 
@@ -81,7 +81,7 @@ func getShortenerValidateRequest(req *GetShortenerRequest) error {
 }
 
 func setShortenerValidateRequest(req *SetShortenerRequest) error {
-	_, err := url.ParseRequestURI(req.Url)
+	_, err := url.ParseRequestURI(req.URL)
 
 	if err != nil {
 		return ErrValidateShortenerInvalidRequest
@@ -107,7 +107,7 @@ func (f *Shortener) generateRandomString(length uint8) (string, error) {
 
 	id := string(result)
 	_, err := f.store.GetShortener(&repository.GetShortenerRequest{
-		Id: id,
+		ID: id,
 	})
 	if err != nil {
 		if errors.Is(err, repository.ErrGetShortenerNotFound) {
@@ -131,11 +131,11 @@ func (f *Shortener) SetShortener(req *SetShortenerRequest) (*SetShortenerRespons
 	}
 
 	f.store.SetShortener(&repository.SetShortenerRequest{
-		Id:  id,
-		Url: req.Url,
+		ID:  id,
+		URL: req.URL,
 	})
 
 	return &SetShortenerResponse{
-		Id: id,
+		ID: id,
 	}, nil
 }

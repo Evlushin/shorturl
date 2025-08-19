@@ -24,11 +24,11 @@ func NewStore() *Store {
 }
 
 type GetShortenerRequest struct {
-	Id string
+	ID string
 }
 
 type GetShortenerResponse struct {
-	Url string
+	URL string
 }
 
 var (
@@ -43,23 +43,23 @@ func (s *Store) GetShortener(req *GetShortenerRequest) (*GetShortenerResponse, e
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	res, ok := s.s[req.Id]
+	res, ok := s.s[req.ID]
 	if !ok {
-		return nil, newErrGetShortenerNotFound(req.Id)
+		return nil, newErrGetShortenerNotFound(req.ID)
 	}
 	return &GetShortenerResponse{
-		Url: res,
+		URL: res,
 	}, nil
 }
 
 type SetShortenerRequest struct {
-	Id  string
-	Url string
+	ID  string
+	URL string
 }
 
 func (s *Store) SetShortener(req *SetShortenerRequest) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	s.s[req.Id] = req.Url
+	s.s[req.ID] = req.URL
 }

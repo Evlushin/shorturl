@@ -52,7 +52,7 @@ func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	resp, err := h.shortener.GetShortener(&service.GetShortenerRequest{
-		Id: id,
+		ID: id,
 	})
 	if err != nil {
 		if errors.Is(err, service.ErrGetShortenerInvalidRequest) {
@@ -64,7 +64,7 @@ func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Location", resp.Url)
+	w.Header().Set("Location", resp.URL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
@@ -78,7 +78,7 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := h.shortener.SetShortener(&service.SetShortenerRequest{
-		Url: string(body),
+		URL: string(body),
 	})
 
 	if err != nil {
@@ -91,7 +91,7 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullURL := fmt.Sprintf("http://%s/%s", h.cfg.ServerAddr, resp.Id)
+	fullURL := fmt.Sprintf("http://%s/%s", h.cfg.ServerAddr, resp.ID)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Content-Length", strconv.Itoa(len(fullURL)))
