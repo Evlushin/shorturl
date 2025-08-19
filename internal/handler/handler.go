@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Evlushin/shorturl/internal/handler/config"
+	"github.com/Evlushin/shorturl/internal/repository"
 	"github.com/Evlushin/shorturl/internal/service"
 	"io"
 	"log"
@@ -55,7 +56,7 @@ func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
 		ID: id,
 	})
 	if err != nil {
-		if errors.Is(err, service.ErrGetShortenerInvalidRequest) {
+		if errors.Is(err, service.ErrGetShortenerInvalidRequest) || errors.Is(err, service.ErrValidateShortenerInvalidRequest) || errors.Is(err, repository.ErrGetShortenerNotFound) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
