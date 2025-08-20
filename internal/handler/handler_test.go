@@ -27,6 +27,9 @@ func getHandlers() *handlers {
 func Test_handlers_SetShortener(t *testing.T) {
 	h := getHandlers()
 
+	ts := httptest.NewServer(newRouter(h))
+	defer ts.Close()
+
 	type want struct {
 		code        int
 		request     string
@@ -47,14 +50,11 @@ func Test_handlers_SetShortener(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			requestSet := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(test.want.request))
+			requestSet, err := http.NewRequest(http.MethodPost, ts.URL+"/", strings.NewReader(test.want.request))
+			require.NoError(t, err)
 			requestSet.Header.Add("Content-Type", test.want.contentType)
-
-			wSet := httptest.NewRecorder()
-
-			h.SetShortener(wSet, requestSet)
-
-			resSet := wSet.Result()
+			resSet, err := ts.Client().Do(requestSet)
+			require.NoError(t, err)
 			defer resSet.Body.Close()
 
 			resBodySet, err := io.ReadAll(resSet.Body)
@@ -71,6 +71,8 @@ func Test_handlers_SetShortener(t *testing.T) {
 
 func Test_handlers_GetShortener(t *testing.T) {
 	h := getHandlers()
+	ts := httptest.NewServer(newRouter(h))
+	defer ts.Close()
 
 	type want struct {
 		code        int
@@ -92,14 +94,11 @@ func Test_handlers_GetShortener(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			requestSet := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(test.want.request))
-			requestSet.Header.Add("Content-Type", "text/plain")
-
-			wSet := httptest.NewRecorder()
-
-			h.SetShortener(wSet, requestSet)
-
-			resSet := wSet.Result()
+			requestSet, err := http.NewRequest(http.MethodPost, ts.URL+"/", strings.NewReader(test.want.request))
+			require.NoError(t, err)
+			requestSet.Header.Add("Content-Type", test.want.contentType)
+			resSet, err := ts.Client().Do(requestSet)
+			require.NoError(t, err)
 			defer resSet.Body.Close()
 
 			resBodySet, err := io.ReadAll(resSet.Body)
@@ -107,16 +106,19 @@ func Test_handlers_GetShortener(t *testing.T) {
 			parseURL, err := url.Parse(string(resBodySet))
 			require.NoError(t, err)
 
-			requestGet := httptest.NewRequest(http.MethodGet, parseURL.Path, nil)
-			requestGet.SetPathValue("id", parseURL.Path[1:])
+			requestGet, err := http.NewRequest(http.MethodGet, ts.URL+parseURL.Path, nil)
+			require.NoError(t, err)
 			requestGet.Header.Add("Content-Type", test.want.contentType)
 
-			wGet := httptest.NewRecorder()
-			h.GetShortener(wGet, requestGet)
+			client := &http.Client{
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				},
+			}
 
-			resGet := wGet.Result()
-			defer resGet.Body.Close()
+			resGet, err := client.Do(requestGet)
 			require.NoError(t, err)
+			defer resGet.Body.Close()
 
 			assert.Equal(t, test.want.code, resGet.StatusCode)
 			assert.Equal(t, test.want.request, resGet.Header.Get("Location"))

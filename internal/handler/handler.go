@@ -6,6 +6,7 @@ import (
 	"github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/Evlushin/shorturl/internal/repository"
 	"github.com/Evlushin/shorturl/internal/service"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"log"
 	"net/http"
@@ -24,12 +25,13 @@ func Serve(cfg config.Config, shortener Shortener) error {
 	return srv.ListenAndServe()
 }
 
-func newRouter(h *handlers) *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /", h.SetShortener)
-	mux.HandleFunc("GET /{id}", h.GetShortener)
+func newRouter(h *handlers) *chi.Mux {
+	r := chi.NewRouter()
 
-	return mux
+	r.Post("/", h.SetShortener)
+	r.Get("/{id}", h.GetShortener)
+
+	return r
 }
 
 type Shortener interface {
@@ -50,7 +52,7 @@ func newHandlers(shortener Shortener, cfg config.Config) *handlers {
 }
 
 func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 
 	resp, err := h.shortener.GetShortener(&service.GetShortenerRequest{
 		ID: id,
