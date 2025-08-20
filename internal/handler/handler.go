@@ -94,7 +94,7 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullURL := fmt.Sprintf("http://%s/%s", h.cfg.BaseAddr, resp.ID)
+	fullURL := fmt.Sprintf("%s/%s", h.cfg.BaseAddr, resp.ID)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Content-Length", strconv.Itoa(len(fullURL)))
