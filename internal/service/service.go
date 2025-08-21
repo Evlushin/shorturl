@@ -42,6 +42,7 @@ type SetShortenerResponse struct {
 
 var (
 	ErrGetShortenerInvalidRequest      = errors.New("invalid get shortener request")
+	ErrEndRandomStrings                = errors.New("end random strings")
 	ErrValidateShortenerInvalidRequest = errors.New("invalid validate shortener request")
 	ErrRepoFailed                      = errors.New("repo failed")
 )
@@ -90,7 +91,11 @@ func setShortenerValidateRequest(req *SetShortenerRequest) error {
 	return nil
 }
 
-func (f *Shortener) generateRandomString(length uint8) (string, error) {
+func (f *Shortener) generateRandomString(length uint8, limit uint16) (string, error) {
+	if limit <= 0 {
+		return "", ErrEndRandomStrings
+	}
+
 	const (
 		charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	)
@@ -117,7 +122,7 @@ func (f *Shortener) generateRandomString(length uint8) (string, error) {
 		return "", err
 	}
 
-	return f.generateRandomString(length)
+	return f.generateRandomString(length, limit-1)
 }
 
 func (f *Shortener) SetShortener(req *SetShortenerRequest) (*SetShortenerResponse, error) {
@@ -125,7 +130,7 @@ func (f *Shortener) SetShortener(req *SetShortenerRequest) (*SetShortenerRespons
 		return nil, err
 	}
 
-	id, err := f.generateRandomString(8)
+	id, err := f.generateRandomString(8, 10000)
 	if err != nil {
 		return nil, err
 	}
