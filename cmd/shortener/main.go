@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Evlushin/shorturl/internal/logger"
 	"log"
 
 	"github.com/Evlushin/shorturl/internal/config"
@@ -17,6 +18,10 @@ func main() {
 
 func run() error {
 	cfg := config.GetConfig()
+
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
+		return err
+	}
 
 	store := repository.NewStore()
 	shortenerService := service.NewShortener(store)

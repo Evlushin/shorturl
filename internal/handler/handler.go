@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Evlushin/shorturl/internal/handler/config"
+	"github.com/Evlushin/shorturl/internal/logger"
 	"github.com/Evlushin/shorturl/internal/repository"
 	"github.com/Evlushin/shorturl/internal/service"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 	"io"
 	"log"
 	"net/http"
@@ -16,6 +18,11 @@ import (
 func Serve(cfg config.Config, shortener Shortener) error {
 	h := newHandlers(shortener, cfg)
 	router := newRouter(h)
+
+	logger.Log.Info(
+		"Starting server",
+		zap.String("addr", cfg.ServerAddr),
+	)
 
 	srv := &http.Server{
 		Addr:    cfg.ServerAddr,
@@ -27,6 +34,8 @@ func Serve(cfg config.Config, shortener Shortener) error {
 
 func newRouter(h *handlers) *chi.Mux {
 	r := chi.NewRouter()
+
+	r.Use(logger.RequestLogger)
 
 	r.Post("/", h.SetShortener)
 	r.Get("/{id}", h.GetShortener)
