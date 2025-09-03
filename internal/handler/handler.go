@@ -134,7 +134,6 @@ func errorJSON(w http.ResponseWriter, message string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(errResp)
-	return
 }
 
 func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
