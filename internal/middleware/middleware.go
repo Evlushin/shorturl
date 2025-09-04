@@ -114,17 +114,17 @@ func GzipMiddleware(h http.Handler) http.Handler {
 
 				defer cw.Close()
 			}
+		}
 
-			if isCompression(r, "gzip") {
-				cr, err := newCompressReader(r.Body)
-				if err != nil {
-					logger.Log.Error(fmt.Sprintf("decompression error: %v", err))
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				r.Body = cr
-				defer cr.Close()
+		if isCompression(r, "gzip") {
+			cr, err := newCompressReader(r.Body)
+			if err != nil {
+				logger.Log.Error(fmt.Sprintf("decompression error: %v", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
+			r.Body = cr
+			defer cr.Close()
 		}
 
 		h.ServeHTTP(ow, r)
