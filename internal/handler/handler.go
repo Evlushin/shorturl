@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/Evlushin/shorturl/internal/logger"
+	"github.com/Evlushin/shorturl/internal/middleware"
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/repository"
 	"github.com/Evlushin/shorturl/internal/service"
@@ -45,6 +46,7 @@ func newRouter(h *handlers) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(logger.RequestLogger)
+	r.Use(middleware.GzipMiddleware)
 
 	r.Post("/", h.SetShortener)
 	r.Get("/{id}", h.GetShortener)
@@ -84,7 +86,7 @@ func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		log.Printf("failed to get shortener: %v", err)
+		logger.Log.Error(fmt.Sprintf("failed to get shortener: %v", err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -97,7 +99,7 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		log.Printf("error reading request body: %v", err)
+		logger.Log.Error(fmt.Sprintf("error reading request body: %v", err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -111,7 +113,7 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		log.Printf("failed to get shortener: %v", err)
+		logger.Log.Error(fmt.Sprintf("failed set shortener: %v", err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -180,7 +182,6 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 
 	jsonBytes := buf.Bytes()
 	length := len(jsonBytes)
-
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(length))
 	w.WriteHeader(http.StatusCreated)

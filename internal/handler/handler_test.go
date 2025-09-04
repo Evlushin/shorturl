@@ -175,7 +175,6 @@ func Test_handlers_SetShortenerAPI(t *testing.T) {
 
 			assert.Equal(t, test.want.code, resSet.StatusCode)
 			assert.Equal(t, test.want.contentType, resSet.Header.Get("Content-Type"))
-			assert.Equal(t, strconv.Itoa(len(resBodySet)), resSet.Header.Get("Content-Length"))
 		})
 	}
 }
