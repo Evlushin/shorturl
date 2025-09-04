@@ -85,7 +85,7 @@ func setShortenerValidateRequest(req *SetShortenerRequest) error {
 	_, err := url.ParseRequestURI(req.URL)
 
 	if err != nil {
-		return ErrValidateShortenerInvalidRequest
+		return fmt.Errorf("%w : URL : %s", ErrValidateShortenerInvalidRequest, req.URL)
 	}
 
 	return nil
