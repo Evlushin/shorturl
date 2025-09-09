@@ -19,7 +19,6 @@ func GetConfig() Config {
 	flag.StringVar(&cfg.Handlers.BaseAddr, "b", "http://localhost:8080", "base address of the resulting shortened URL")
 	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
 	flag.StringVar(&cfg.FileStorePath, "f", "storage.txt", "address storage")
-	flag.StringVar(&cfg.FileStorePath, "file-storage-path", "storage.txt", "address storage")
 	flag.Parse()
 
 	if serverAddr := os.Getenv("SERVER_ADDRESS"); serverAddr != "" {
