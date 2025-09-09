@@ -103,7 +103,6 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
 	resp, err := h.shortener.SetShortener(&service.SetShortenerRequest{
 		URL: string(body),
 	})

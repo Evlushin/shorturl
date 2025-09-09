@@ -23,7 +23,11 @@ func run() error {
 		return err
 	}
 
-	store := repository.NewStore()
+	store, err := repository.NewStore(cfg.FileStorePath)
+	if err != nil {
+		return err
+	}
+
 	shortenerService := service.NewShortener(store)
 
 	return handler.Serve(cfg.Handlers, shortenerService)
