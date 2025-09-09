@@ -11,8 +11,8 @@ import (
 
 type URLRecord struct {
 	UUID        string `json:"uuid"`
-	ShortUrl    string `json:"short_url"`
-	OriginalUrl string `json:"original_url"`
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }
 
 type Repository interface {
@@ -58,7 +58,7 @@ func (st *Store) load() error {
 
 	st.s = make(map[string]string)
 	for _, rec := range arr {
-		st.s[rec.ShortUrl] = rec.OriginalUrl
+		st.s[rec.ShortURL] = rec.OriginalURL
 	}
 
 	return nil
@@ -73,8 +73,8 @@ func (st *Store) save() error {
 	for shortURL, originalURL := range st.s {
 		rec := URLRecord{
 			UUID:        strconv.Itoa(id),
-			ShortUrl:    shortURL,
-			OriginalUrl: originalURL,
+			ShortURL:    shortURL,
+			OriginalURL: originalURL,
 		}
 		arr = append(arr, rec)
 		id++
