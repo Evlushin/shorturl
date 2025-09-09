@@ -20,7 +20,7 @@ func getHandlers() *handlers {
 	cfg := config.Config{
 		ServerAddr: "localhost:8080",
 	}
-	store := repository.NewStore()
+	store, _ := repository.NewStore("storage.txt")
 	shortenerService := service.NewShortener(store)
 	return newHandlers(shortenerService, cfg)
 }
