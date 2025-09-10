@@ -11,7 +11,7 @@ import (
 
 type Repository interface {
 	GetShortener(req *repository.GetShortenerRequest) (*repository.GetShortenerResponse, error)
-	SetShortener(req *repository.SetShortenerRequest)
+	SetShortener(req *repository.SetShortenerRequest) error
 }
 
 type Shortener struct {
@@ -85,7 +85,7 @@ func setShortenerValidateRequest(req *SetShortenerRequest) error {
 	_, err := url.ParseRequestURI(req.URL)
 
 	if err != nil {
-		return ErrValidateShortenerInvalidRequest
+		return fmt.Errorf("%w : URL : %s", ErrValidateShortenerInvalidRequest, req.URL)
 	}
 
 	return nil
@@ -135,10 +135,13 @@ func (f *Shortener) SetShortener(req *SetShortenerRequest) (*SetShortenerRespons
 		return nil, err
 	}
 
-	f.store.SetShortener(&repository.SetShortenerRequest{
+	err = f.store.SetShortener(&repository.SetShortenerRequest{
 		ID:  id,
 		URL: req.URL,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &SetShortenerResponse{
 		ID: id,
