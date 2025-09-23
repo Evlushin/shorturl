@@ -1,62 +1,41 @@
 package service
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/Evlushin/shorturl/internal/models"
+	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/Evlushin/shorturl/internal/repository"
 	"net/url"
 	"regexp"
 )
 
-type Repository interface {
-	GetShortener(req *repository.GetShortenerRequest) (*repository.GetShortenerResponse, error)
-	SetShortener(req *repository.SetShortenerRequest) error
-}
-
 type Shortener struct {
-	store Repository
+	store repository.Repository
 }
 
-func NewShortener(store Repository) *Shortener {
+func NewShortener(store repository.Repository) *Shortener {
 	return &Shortener{
 		store: store,
 	}
 }
 
-type GetShortenerRequest struct {
-	ID string
+func (f *Shortener) Ping(ctx context.Context) error {
+	return f.store.Ping(ctx)
 }
 
-type GetShortenerResponse struct {
-	URL string
-}
-
-type SetShortenerRequest struct {
-	URL string
-}
-
-type SetShortenerResponse struct {
-	ID string
-}
-
-var (
-	ErrGetShortenerInvalidRequest      = errors.New("invalid get shortener request")
-	ErrEndRandomStrings                = errors.New("end random strings")
-	ErrValidateShortenerInvalidRequest = errors.New("invalid validate shortener request")
-	ErrRepoFailed                      = errors.New("repo failed")
-)
-
-func (f *Shortener) GetShortener(req *GetShortenerRequest) (*GetShortenerResponse, error) {
+func (f *Shortener) GetShortener(ctx context.Context, req *models.GetShortenerRequest) (*models.GetShortenerResponse, error) {
 	if err := getShortenerValidateRequest(req); err != nil {
 		return nil, err
 	}
 
-	repositoryResp, err := f.store.GetShortener(&repository.GetShortenerRequest{
+	repositoryResp, err := f.store.GetShortener(ctx, &models.GetShortenerRequest{
 		ID: req.ID,
 	})
 	if err != nil {
-		if !errors.Is(err, repository.ErrGetShortenerNotFound) {
+		if !errors.Is(err, myerrors.ErrGetShortenerNotFound) {
 			return nil, fmt.Errorf("failed to fetch the shortener result from the store: %w", err)
 		}
 
@@ -64,7 +43,7 @@ func (f *Shortener) GetShortener(req *GetShortenerRequest) (*GetShortenerRespons
 	}
 
 	if repositoryResp != nil {
-		return &GetShortenerResponse{
+		return &models.GetShortenerResponse{
 			URL: repositoryResp.URL,
 		}, nil
 	}
@@ -72,28 +51,28 @@ func (f *Shortener) GetShortener(req *GetShortenerRequest) (*GetShortenerRespons
 	return nil, fmt.Errorf("not found: %w", err)
 }
 
-func getShortenerValidateRequest(req *GetShortenerRequest) error {
+func getShortenerValidateRequest(req *models.GetShortenerRequest) error {
 	validPattern := regexp.MustCompile(`^[A-Za-z0-9]{8}$`)
 	if !validPattern.MatchString(req.ID) {
-		return ErrValidateShortenerInvalidRequest
+		return myerrors.ErrValidateShortenerInvalidRequest
 	}
 
 	return nil
 }
 
-func setShortenerValidateRequest(req *SetShortenerRequest) error {
+func setShortenerValidateRequest(req *models.SetShortenerRequest) error {
 	_, err := url.ParseRequestURI(req.URL)
 
 	if err != nil {
-		return fmt.Errorf("%w : URL : %s", ErrValidateShortenerInvalidRequest, req.URL)
+		return fmt.Errorf("%w : URL : %s", myerrors.ErrValidateShortenerInvalidRequest, req.URL)
 	}
 
 	return nil
 }
 
-func (f *Shortener) generateRandomString(length uint8, limit uint16) (string, error) {
+func (f *Shortener) generateRandomString(ctx context.Context, length uint8, limit uint16) (string, error) {
 	if limit <= 0 {
-		return "", ErrEndRandomStrings
+		return "", myerrors.ErrEndRandomStrings
 	}
 
 	const (
@@ -111,31 +90,31 @@ func (f *Shortener) generateRandomString(length uint8, limit uint16) (string, er
 	}
 
 	id := string(result)
-	_, err := f.store.GetShortener(&repository.GetShortenerRequest{
+	_, err := f.store.GetShortener(ctx, &models.GetShortenerRequest{
 		ID: id,
 	})
 	if err != nil {
-		if errors.Is(err, repository.ErrGetShortenerNotFound) {
+		if errors.Is(err, myerrors.ErrGetShortenerNotFound) {
 			return id, nil
 		}
 
 		return "", err
 	}
 
-	return f.generateRandomString(length, limit-1)
+	return f.generateRandomString(ctx, length, limit-1)
 }
 
-func (f *Shortener) SetShortener(req *SetShortenerRequest) (*SetShortenerResponse, error) {
+func (f *Shortener) SetShortener(ctx context.Context, req *models.SetShortenerRequest) (*models.SetShortenerResponse, error) {
 	if err := setShortenerValidateRequest(req); err != nil {
 		return nil, err
 	}
 
-	id, err := f.generateRandomString(8, 10000)
+	id, err := f.generateRandomString(ctx, 8, 10000)
 	if err != nil {
 		return nil, err
 	}
 
-	err = f.store.SetShortener(&repository.SetShortenerRequest{
+	err = f.store.SetShortener(ctx, &models.SetShortenerRequest{
 		ID:  id,
 		URL: req.URL,
 	})
@@ -143,7 +122,7 @@ func (f *Shortener) SetShortener(req *SetShortenerRequest) (*SetShortenerRespons
 		return nil, err
 	}
 
-	return &SetShortenerResponse{
+	return &models.SetShortenerResponse{
 		ID: id,
 	}, nil
 }

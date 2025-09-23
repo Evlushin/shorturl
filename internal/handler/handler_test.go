@@ -2,8 +2,8 @@ package handler
 
 import (
 	"encoding/json"
-	"github.com/Evlushin/shorturl/internal/handler/config"
-	"github.com/Evlushin/shorturl/internal/repository"
+	"github.com/Evlushin/shorturl/internal/config"
+	"github.com/Evlushin/shorturl/internal/repository/inmemory"
 	"github.com/Evlushin/shorturl/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,17 +16,16 @@ import (
 	"testing"
 )
 
-func getHandlers() *handlers {
-	cfg := config.Config{
-		ServerAddr: "localhost:8080",
-	}
-	store, _ := repository.NewStore("storage.txt")
+func getHandlersMemory() *handlers {
+	cfg := config.Config{}
+	cfg.Handlers.ServerAddr = "localhost:8080"
+	store, _ := inmemory.NewStore(&cfg)
 	shortenerService := service.NewShortener(store)
-	return newHandlers(shortenerService, cfg)
+	return newHandlers(shortenerService, cfg.Handlers)
 }
 
 func Test_handlers_SetShortener(t *testing.T) {
-	h := getHandlers()
+	h := getHandlersMemory()
 
 	ts := httptest.NewServer(newRouter(h))
 	defer ts.Close()
@@ -71,7 +70,7 @@ func Test_handlers_SetShortener(t *testing.T) {
 }
 
 func Test_handlers_GetShortener(t *testing.T) {
-	h := getHandlers()
+	h := getHandlersMemory()
 	ts := httptest.NewServer(newRouter(h))
 	defer ts.Close()
 
@@ -128,7 +127,7 @@ func Test_handlers_GetShortener(t *testing.T) {
 }
 
 func Test_handlers_SetShortenerAPI(t *testing.T) {
-	h := getHandlers()
+	h := getHandlersMemory()
 
 	ts := httptest.NewServer(newRouter(h))
 	defer ts.Close()
