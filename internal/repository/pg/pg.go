@@ -9,6 +9,7 @@ import (
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/Evlushin/shorturl/internal/repository"
+	"github.com/Evlushin/shorturl/internal/repository/pg/migrator"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"time"
@@ -34,6 +35,11 @@ func NewStore(cfg *config.Config) (repository.Repository, error) {
 	store := &Store{
 		cfg:  cfg,
 		conn: conn,
+	}
+
+	err = migrator.ApplyMigrations(conn, "file://./migrations")
+	if err != nil {
+		return nil, err
 	}
 
 	return store, nil
