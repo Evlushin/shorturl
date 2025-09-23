@@ -27,11 +27,10 @@ func run() error {
 	}
 
 	store, err := NewRepository(&cfg)
-	defer store.Close()
-
 	if err != nil {
 		return err
 	}
+	defer store.Close()
 
 	shortenerService := service.NewShortener(store)
 
