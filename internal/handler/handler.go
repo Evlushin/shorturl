@@ -233,7 +233,7 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 		fullURL := fmt.Sprintf("%s/%s", h.cfg.BaseAddr, shortener.ID)
 		resp = append(resp, models.ResponseBatch{
 			CorrelationID: shortener.CorrelationID,
-			ShortUrl:      fullURL,
+			ShortURL:      fullURL,
 		})
 	}
 

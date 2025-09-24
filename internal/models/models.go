@@ -15,7 +15,7 @@ type Response struct {
 
 type ResponseBatch struct {
 	CorrelationID string `json:"correlation_id"`
-	ShortUrl      string `json:"short_url"`
+	ShortURL      string `json:"short_url"`
 }
 
 type ErrorJSONResponse struct {
