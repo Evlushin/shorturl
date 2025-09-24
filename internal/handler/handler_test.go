@@ -177,3 +177,61 @@ func Test_handlers_SetShortenerAPI(t *testing.T) {
 		})
 	}
 }
+
+func Test_handlers_SetShortenerBatchAPI(t *testing.T) {
+	h := getHandlersMemory()
+
+	ts := httptest.NewServer(newRouter(h))
+	defer ts.Close()
+
+	type want struct {
+		code        int
+		request     string
+		contentType string
+	}
+	tests := []struct {
+		name string
+		want want
+	}{
+		{
+			name: "positive test #1",
+			want: want{
+				code: 201,
+				request: `[
+								{"correlation_id":"1","original_url":"https://practicum.yandex.ru/"},
+								{"correlation_id":"2","original_url":"https://www.google.com/"}
+						]`,
+				contentType: "application/json",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			requestSet, err := http.NewRequest(http.MethodPost, ts.URL+"/api/shorten/batch", strings.NewReader(test.want.request))
+			require.NoError(t, err)
+			requestSet.Header.Add("Content-Type", test.want.contentType)
+			resSet, err := ts.Client().Do(requestSet)
+			require.NoError(t, err)
+			defer resSet.Body.Close()
+
+			resBodySet, err := io.ReadAll(resSet.Body)
+			require.NoError(t, err)
+
+			var response []map[string]string
+
+			err = json.Unmarshal(resBodySet, &response)
+			require.NoError(t, err)
+
+			for _, r := range response {
+				assert.Contains(t, r, "short_url", "JSON должен содержать ключ 'short_url'")
+				assert.Contains(t, r, "correlation_id", "JSON должен содержать ключ 'correlation_id'")
+
+				_, err = url.Parse(r["short_url"])
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, test.want.code, resSet.StatusCode)
+			assert.Equal(t, test.want.contentType, resSet.Header.Get("Content-Type"))
+		})
+	}
+}

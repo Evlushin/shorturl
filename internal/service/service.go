@@ -10,6 +10,7 @@ import (
 	"github.com/Evlushin/shorturl/internal/repository"
 	"net/url"
 	"regexp"
+	"strings"
 )
 
 type Shortener struct {
@@ -70,6 +71,25 @@ func setShortenerValidateRequest(req *models.SetShortenerRequest) error {
 	return nil
 }
 
+func setShortenerBatchValidateRequest(req []models.RequestBatch) error {
+	notURL := make([]string, 0)
+	for _, item := range req {
+		err := setShortenerValidateRequest(&models.SetShortenerRequest{
+			URL: item.OriginalURL,
+		})
+
+		if err != nil {
+			notURL = append(notURL, item.OriginalURL)
+		}
+	}
+
+	if len(notURL) > 0 {
+		return fmt.Errorf("%w : URLs : %s", myerrors.ErrValidateShortenerInvalidRequest, strings.Join(notURL, ", "))
+	}
+
+	return nil
+}
+
 func (f *Shortener) generateRandomString(ctx context.Context, length uint8, limit uint16) (string, error) {
 	if limit <= 0 {
 		return "", myerrors.ErrEndRandomStrings
@@ -125,4 +145,32 @@ func (f *Shortener) SetShortener(ctx context.Context, req *models.SetShortenerRe
 	return &models.SetShortenerResponse{
 		ID: id,
 	}, nil
+}
+
+func (f *Shortener) SetShortenerBatch(ctx context.Context, req []models.RequestBatch) ([]models.SetShortenerBatchRequest, error) {
+	if err := setShortenerBatchValidateRequest(req); err != nil {
+		return nil, err
+	}
+
+	var r []models.SetShortenerBatchRequest
+	for _, item := range req {
+		id, err := f.generateRandomString(ctx, 8, 100)
+
+		if err != nil {
+			return nil, err
+		}
+
+		r = append(r, models.SetShortenerBatchRequest{
+			CorrelationID: item.CorrelationID,
+			ID:            id,
+			URL:           item.OriginalURL,
+		})
+	}
+
+	err := f.store.SetShortenerBatch(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }

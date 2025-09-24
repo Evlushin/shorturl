@@ -11,7 +11,6 @@ import (
 	"github.com/Evlushin/shorturl/internal/repository"
 	"github.com/Evlushin/shorturl/internal/repository/pg/migrator"
 	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"time"
 )
 
@@ -72,6 +71,51 @@ func (st *Store) SetShortener(ctx context.Context, req *models.SetShortenerReque
     `, req.ID, req.URL, time.Now())
 
 	return err
+}
+
+func (st *Store) insertShortenerBatch(ctx context.Context, req []models.SetShortenerBatchRequest) error {
+	tx, err := st.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx,
+		`INSERT INTO shorteners 
+    		   (ID, URL, created_at) 
+			   VALUES($1, $2, $3)
+			   `)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, r := range req {
+		_, err := stmt.ExecContext(ctx, r.ID, r.URL, time.Now())
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (st *Store) SetShortenerBatch(ctx context.Context, req []models.SetShortenerBatchRequest) error {
+	const countBatch = 1000
+
+	buf := make([]models.SetShortenerBatchRequest, 0, countBatch)
+	for _, r := range req {
+		buf = append(buf, r)
+
+		if len(buf) >= countBatch {
+			err := st.insertShortenerBatch(ctx, buf)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return st.insertShortenerBatch(ctx, buf)
 }
 
 func (st *Store) Ping(ctx context.Context) error {

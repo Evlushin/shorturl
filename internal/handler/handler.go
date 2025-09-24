@@ -47,7 +47,10 @@ func newRouter(h *handlers) *chi.Mux {
 	r.Get("/ping", h.Ping)
 
 	r.Route("/api", func(r chi.Router) {
-		r.Post("/shorten", h.SetShortenerAPI)
+		r.Route("/shorten", func(r chi.Router) {
+			r.Post("/", h.SetShortenerAPI)
+			r.Post("/batch", h.SetShortenerBatchAPI)
+		})
 	})
 
 	return r
@@ -56,6 +59,7 @@ func newRouter(h *handlers) *chi.Mux {
 type Shortener interface {
 	GetShortener(ctx context.Context, req *models.GetShortenerRequest) (*models.GetShortenerResponse, error)
 	SetShortener(ctx context.Context, req *models.SetShortenerRequest) (*models.SetShortenerResponse, error)
+	SetShortenerBatch(ctx context.Context, req []models.RequestBatch) ([]models.SetShortenerBatchRequest, error)
 	Ping(ctx context.Context) error
 }
 
@@ -180,6 +184,57 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 
 	resp := models.Response{
 		Result: fullURL,
+	}
+
+	buf := new(bytes.Buffer)
+	err = json.NewEncoder(buf).Encode(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	jsonBytes := buf.Bytes()
+	length := len(jsonBytes)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(length))
+	w.WriteHeader(http.StatusCreated)
+	w.Write(jsonBytes)
+}
+
+func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
+		errorJSON(w, myerrors.ErrContentType.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var req []models.RequestBatch
+	dec := json.NewDecoder(r.Body)
+	if err := dec.Decode(&req); err != nil {
+		logger.Log.Debug(err.Error())
+		errorJSON(w, myerrors.ErrJSONDecode.Error(), http.StatusBadRequest)
+		return
+	}
+
+	shorteners, err := h.shortener.SetShortenerBatch(ctx, req)
+
+	if err != nil {
+		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
+			errorJSON(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Printf("failed to get shortener: %v", err)
+		errorJSON(w, myerrors.ErrInternalServer.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var resp []models.ResponseBatch
+	for _, shortener := range shorteners {
+		fullURL := fmt.Sprintf("%s/%s", h.cfg.BaseAddr, shortener.ID)
+		resp = append(resp, models.ResponseBatch{
+			CorrelationID: shortener.CorrelationID,
+			ShortUrl:      fullURL,
+		})
 	}
 
 	buf := new(bytes.Buffer)

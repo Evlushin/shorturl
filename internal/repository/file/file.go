@@ -111,6 +111,16 @@ func (st *Store) SetShortener(ctx context.Context, req *models.SetShortenerReque
 	return st.save()
 }
 
+func (st *Store) SetShortenerBatch(ctx context.Context, req []models.SetShortenerBatchRequest) error {
+	st.mux.Lock()
+	for _, r := range req {
+		st.s[r.ID] = r.URL
+	}
+	st.mux.Unlock()
+
+	return st.save()
+}
+
 func (st *Store) Close() error {
 	return nil
 }
