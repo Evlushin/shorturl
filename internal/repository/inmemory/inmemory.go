@@ -45,19 +45,35 @@ func (s *Store) SetShortener(ctx context.Context, req *models.SetShortenerReques
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
+	var errUniqueURL error
+	for key, v := range s.s {
+		if v == req.URL {
+			req.ID = key
+			errUniqueURL = myerrors.ErrConflictURL
+		}
+	}
+
 	s.s[req.ID] = req.URL
 
-	return nil
+	return errUniqueURL
 }
 
 func (s *Store) SetShortenerBatch(ctx context.Context, req []models.SetShortenerBatchRequest) error {
 	s.mux.Lock()
-	for _, r := range req {
+	defer s.mux.Unlock()
+	var errUniqueURL error
+	for i, r := range req {
+		for key, v := range s.s {
+			if v == r.URL {
+				req[i].ID = key
+				r.ID = key
+				errUniqueURL = myerrors.ErrConflictURL
+			}
+		}
 		s.s[r.ID] = r.URL
 	}
-	s.mux.Unlock()
 
-	return nil
+	return errUniqueURL
 }
 
 func (s *Store) Close() error {

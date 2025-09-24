@@ -11,4 +11,5 @@ var (
 	ErrContentType                     = errors.New("error Content-Type")
 	ErrJSONDecode                      = errors.New("error JSON decode")
 	ErrInternalServer                  = errors.New("internal Server Error")
+	ErrConflictURL                     = errors.New("URL conflict")
 )

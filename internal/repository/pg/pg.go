@@ -10,6 +10,8 @@ import (
 	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/Evlushin/shorturl/internal/repository"
 	"github.com/Evlushin/shorturl/internal/repository/pg/migrator"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"time"
 )
@@ -63,6 +65,7 @@ func (st *Store) GetShortener(ctx context.Context, req *models.GetShortenerReque
 }
 
 func (st *Store) SetShortener(ctx context.Context, req *models.SetShortenerRequest) error {
+	var returnedID string
 	_, err := st.conn.ExecContext(ctx, `
         INSERT INTO shorteners
         (ID, URL, created_at)
@@ -70,10 +73,28 @@ func (st *Store) SetShortener(ctx context.Context, req *models.SetShortenerReque
         ($1, $2, $3);
     `, req.ID, req.URL, time.Now())
 
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
+			err = st.conn.QueryRowContext(ctx, `
+				SELECT ID FROM shorteners WHERE URL = $1
+			`, req.URL).Scan(&returnedID)
+
+			if err != nil {
+				return err
+			}
+
+			err = myerrors.ErrConflictURL
+			req.ID = returnedID
+		} else {
+			return err
+		}
+	}
+
 	return err
 }
 
-func (st *Store) insertShortenerBatch(ctx context.Context, req []models.SetShortenerBatchRequest) error {
+func (st *Store) insertShortenerBatch(ctx context.Context, req []*models.SetShortenerBatchRequest) error {
 	tx, err := st.conn.Begin()
 	if err != nil {
 		return err
@@ -82,40 +103,75 @@ func (st *Store) insertShortenerBatch(ctx context.Context, req []models.SetShort
 	defer tx.Rollback()
 
 	stmt, err := tx.PrepareContext(ctx,
-		`INSERT INTO shorteners 
-    		   (ID, URL, created_at) 
-			   VALUES($1, $2, $3)
+		`INSERT INTO shorteners
+				(ID, URL, created_at)
+				VALUES
+				($1, $2, $3)
+				ON CONFLICT (URL) DO NOTHING
+				RETURNING ID
 			   `)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	for _, r := range req {
-		_, err := stmt.ExecContext(ctx, r.ID, r.URL, time.Now())
+	var (
+		returnedID   string
+		errUniqueURL error
+	)
+	for key, r := range req {
+		err = stmt.QueryRowContext(ctx, r.ID, r.URL, time.Now()).Scan(&returnedID)
 		if err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
-}
+			if errors.Is(err, sql.ErrNoRows) {
+				err = st.conn.QueryRowContext(ctx, `
+					SELECT ID FROM shorteners WHERE URL = $1
+				`, r.URL).Scan(&returnedID)
 
-func (st *Store) SetShortenerBatch(ctx context.Context, req []models.SetShortenerBatchRequest) error {
-	const countBatch = 1000
-
-	buf := make([]models.SetShortenerBatchRequest, 0, countBatch)
-	for _, r := range req {
-		buf = append(buf, r)
-
-		if len(buf) >= countBatch {
-			err := st.insertShortenerBatch(ctx, buf)
-			if err != nil {
+				if err != nil {
+					return err
+				}
+				req[key].ID = returnedID
+				errUniqueURL = myerrors.ErrConflictURL
+			} else {
 				return err
 			}
 		}
 	}
 
-	return st.insertShortenerBatch(ctx, buf)
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return errUniqueURL
+}
+
+func (st *Store) SetShortenerBatch(ctx context.Context, req []models.SetShortenerBatchRequest) error {
+	const countBatch = 1000
+
+	buf := make([]*models.SetShortenerBatchRequest, 0, countBatch)
+	var errUniqueURL error
+	for key := range req {
+		buf = append(buf, &req[key])
+
+		if len(buf) >= countBatch {
+			err := st.insertShortenerBatch(ctx, buf)
+			if err != nil {
+				if errors.Is(err, myerrors.ErrConflictURL) {
+					errUniqueURL = myerrors.ErrConflictURL
+				} else {
+					return err
+				}
+			}
+			buf = buf[:0]
+		}
+	}
+	err := st.insertShortenerBatch(ctx, buf)
+	if err != nil {
+		return err
+	}
+
+	return errUniqueURL
 }
 
 func (st *Store) Ping(ctx context.Context) error {

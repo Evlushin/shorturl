@@ -121,11 +121,13 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 		URL: string(body),
 	})
 
-	if err != nil {
+	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
+	if err != nil && !isErrConflictURL {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
 		logger.Log.Error(fmt.Sprintf("failed set shortener: %v", err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -135,7 +137,13 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Content-Length", strconv.Itoa(len(fullURL)))
-	w.WriteHeader(http.StatusCreated)
+
+	status := http.StatusCreated
+	if isErrConflictURL {
+		status = http.StatusConflict
+	}
+
+	w.WriteHeader(status)
 	w.Write([]byte(fullURL))
 }
 
@@ -170,7 +178,8 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 		URL: req.URL,
 	})
 
-	if err != nil {
+	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
+	if err != nil && !isErrConflictURL {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
 			errorJSON(w, err.Error(), http.StatusBadRequest)
 			return
@@ -197,7 +206,13 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 	length := len(jsonBytes)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(length))
-	w.WriteHeader(http.StatusCreated)
+
+	status := http.StatusCreated
+	if isErrConflictURL {
+		status = http.StatusConflict
+	}
+
+	w.WriteHeader(status)
 	w.Write(jsonBytes)
 }
 
@@ -218,7 +233,8 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 
 	shorteners, err := h.shortener.SetShortenerBatch(ctx, req)
 
-	if err != nil {
+	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
+	if err != nil && !isErrConflictURL {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
 			errorJSON(w, err.Error(), http.StatusBadRequest)
 			return
@@ -248,6 +264,12 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 	length := len(jsonBytes)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(length))
-	w.WriteHeader(http.StatusCreated)
+
+	status := http.StatusCreated
+	if isErrConflictURL {
+		status = http.StatusConflict
+	}
+
+	w.WriteHeader(status)
 	w.Write(jsonBytes)
 }

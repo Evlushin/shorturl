@@ -105,20 +105,46 @@ func (st *Store) GetShortener(ctx context.Context, req *models.GetShortenerReque
 
 func (st *Store) SetShortener(ctx context.Context, req *models.SetShortenerRequest) error {
 	st.mux.Lock()
+	var errUniqueURL error
+	for key, v := range st.s {
+		if v == req.URL {
+			req.ID = key
+			errUniqueURL = myerrors.ErrConflictURL
+		}
+	}
+
 	st.s[req.ID] = req.URL
 	st.mux.Unlock()
 
-	return st.save()
+	err := st.save()
+	if err != nil {
+		return err
+	}
+
+	return errUniqueURL
 }
 
 func (st *Store) SetShortenerBatch(ctx context.Context, req []models.SetShortenerBatchRequest) error {
 	st.mux.Lock()
-	for _, r := range req {
+	var errUniqueURL error
+	for i, r := range req {
+		for key, v := range st.s {
+			if v == r.URL {
+				req[i].ID = key
+				r.ID = key
+				errUniqueURL = myerrors.ErrConflictURL
+			}
+		}
 		st.s[r.ID] = r.URL
 	}
 	st.mux.Unlock()
 
-	return st.save()
+	err := st.save()
+	if err != nil {
+		return err
+	}
+
+	return errUniqueURL
 }
 
 func (st *Store) Close() error {

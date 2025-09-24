@@ -125,26 +125,25 @@ func (f *Shortener) generateRandomString(ctx context.Context, length uint8, limi
 }
 
 func (f *Shortener) SetShortener(ctx context.Context, req *models.SetShortenerRequest) (*models.SetShortenerResponse, error) {
-	if err := setShortenerValidateRequest(req); err != nil {
-		return nil, err
-	}
 
-	id, err := f.generateRandomString(ctx, 8, 10000)
+	err := setShortenerValidateRequest(req)
 	if err != nil {
 		return nil, err
 	}
 
-	err = f.store.SetShortener(ctx, &models.SetShortenerRequest{
-		ID:  id,
-		URL: req.URL,
-	})
+	req.ID, err = f.generateRandomString(ctx, 8, 10000)
 	if err != nil {
+		return nil, err
+	}
+
+	err = f.store.SetShortener(ctx, req)
+	if err != nil && !errors.Is(err, myerrors.ErrConflictURL) {
 		return nil, err
 	}
 
 	return &models.SetShortenerResponse{
-		ID: id,
-	}, nil
+		ID: req.ID,
+	}, err
 }
 
 func (f *Shortener) SetShortenerBatch(ctx context.Context, req []models.RequestBatch) ([]models.SetShortenerBatchRequest, error) {
@@ -168,9 +167,9 @@ func (f *Shortener) SetShortenerBatch(ctx context.Context, req []models.RequestB
 	}
 
 	err := f.store.SetShortenerBatch(ctx, r)
-	if err != nil {
+	if err != nil && !errors.Is(err, myerrors.ErrConflictURL) {
 		return nil, err
 	}
 
-	return r, nil
+	return r, err
 }
