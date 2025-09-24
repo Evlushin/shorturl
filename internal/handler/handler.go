@@ -14,7 +14,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -84,10 +83,11 @@ func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) || errors.Is(err, myerrors.ErrGetShortenerNotFound) {
+			logger.Log.Debug("bad request", zap.Int("status", 400), zap.Error(err))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		logger.Log.Error(fmt.Sprintf("failed to get shortener: %v", err))
+		logger.Log.Error("failed to get shortener", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -101,7 +101,7 @@ func (h *handlers) Ping(w http.ResponseWriter, r *http.Request) {
 
 	err := h.shortener.Ping(ctx)
 	if err != nil {
-		logger.Log.Error(fmt.Sprintf("ping store error: %v", err))
+		logger.Log.Error("ping store error", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -113,7 +113,7 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		logger.Log.Error(fmt.Sprintf("error reading request body: %v", err))
+		logger.Log.Error("error reading request body", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -124,11 +124,12 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
 	if err != nil && !isErrConflictURL {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
+			logger.Log.Debug("bad request", zap.Int("status", 400), zap.Error(err))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		logger.Log.Error(fmt.Sprintf("failed set shortener: %v", err))
+		logger.Log.Error("failed set shortener", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -169,7 +170,7 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 	var req models.Request
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(&req); err != nil {
-		logger.Log.Debug(err.Error())
+		logger.Log.Debug("failed decode json", zap.Int("status", 400), zap.Error(err))
 		errorJSON(w, myerrors.ErrJSONDecode.Error(), http.StatusBadRequest)
 		return
 	}
@@ -181,10 +182,11 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
 	if err != nil && !isErrConflictURL {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
+			logger.Log.Debug("bad request", zap.Int("status", 400), zap.Error(err))
 			errorJSON(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		log.Printf("failed to get shortener: %v", err)
+		logger.Log.Error("failed set shortener", zap.Error(err))
 		errorJSON(w, myerrors.ErrInternalServer.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -198,7 +200,8 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 	buf := new(bytes.Buffer)
 	err = json.NewEncoder(buf).Encode(resp)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logger.Log.Error("failed json encode", zap.Error(err))
+		errorJSON(w, myerrors.ErrInternalServer.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -226,7 +229,7 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 	var req []models.RequestBatch
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(&req); err != nil {
-		logger.Log.Debug(err.Error())
+		logger.Log.Debug("failed decode json", zap.Int("status", 400), zap.Error(err))
 		errorJSON(w, myerrors.ErrJSONDecode.Error(), http.StatusBadRequest)
 		return
 	}
@@ -236,10 +239,11 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
 	if err != nil && !isErrConflictURL {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
+			logger.Log.Debug("bad request", zap.Int("status", 400), zap.Error(err))
 			errorJSON(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		log.Printf("failed to get shortener: %v", err)
+		logger.Log.Error("failed set shortener", zap.Error(err))
 		errorJSON(w, myerrors.ErrInternalServer.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -256,7 +260,8 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 	buf := new(bytes.Buffer)
 	err = json.NewEncoder(buf).Encode(resp)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logger.Log.Error("failed json encode", zap.Error(err))
+		errorJSON(w, myerrors.ErrInternalServer.Error(), http.StatusInternalServerError)
 		return
 	}
 

@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"compress/gzip"
-	"fmt"
 	"github.com/Evlushin/shorturl/internal/logger"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strings"
@@ -119,7 +119,7 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		if isCompression(r, "gzip") {
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
-				logger.Log.Error(fmt.Sprintf("decompression error: %v", err))
+				logger.Log.Error("decompression error", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
