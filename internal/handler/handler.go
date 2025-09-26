@@ -22,10 +22,7 @@ func Serve(cfg config.Config, shortener Shortener) error {
 	h := newHandlers(shortener, cfg)
 	router := newRouter(h)
 
-	logger.Log.Info(
-		"Starting server",
-		zap.String("addr", cfg.ServerAddr),
-	)
+	logger.Log.Info("Starting server", zap.String("addr", cfg.ServerAddr))
 
 	srv := &http.Server{
 		Addr:    cfg.ServerAddr,
@@ -113,8 +110,8 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		logger.Log.Error("error reading request body", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
+		logger.Log.Debug("error reading request body", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	resp, err := h.shortener.SetShortener(ctx, &models.SetShortenerRequest{

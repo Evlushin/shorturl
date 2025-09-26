@@ -11,14 +11,14 @@ import (
 )
 
 type Store struct {
-	mux *sync.Mutex
+	mux *sync.RWMutex
 	s   map[string]string
 	cfg *config.Config
 }
 
 func NewStore(cfg *config.Config) (repository.Repository, error) {
 	return &Store{
-		mux: &sync.Mutex{},
+		mux: &sync.RWMutex{},
 		s:   make(map[string]string),
 		cfg: cfg,
 	}, nil
