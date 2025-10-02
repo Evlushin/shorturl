@@ -103,11 +103,6 @@ func (h *handlers) GetShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
-		errorJSON(w, myerrors.ErrContentType.Error(), http.StatusBadRequest)
-		return
-	}
-
 	shorteners, err := h.shortener.GetShortenerUrls(ctx, userID)
 	if err != nil {
 		if errors.Is(err, myerrors.ErrGetShortenerNotFound) {
