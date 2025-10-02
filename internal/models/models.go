@@ -1,5 +1,7 @@
 package models
 
+import "github.com/golang-jwt/jwt/v4"
+
 type Request struct {
 	URL string `json:"url"`
 }
@@ -18,12 +20,18 @@ type ResponseBatch struct {
 	ShortURL      string `json:"short_url"`
 }
 
+type ResponseUrls struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
 type ErrorJSONResponse struct {
 	Message string `json:"message"`
 }
 
 type GetShortenerRequest struct {
-	ID string
+	ID     string
+	UserID string
 }
 
 type SetShortenerResponse struct {
@@ -40,12 +48,24 @@ type GetShortenerResponse struct {
 }
 
 type SetShortenerRequest struct {
-	ID  string
-	URL string
+	ID     string
+	URL    string
+	UserID string
 }
 
 type SetShortenerBatchRequest struct {
 	CorrelationID string
 	ID            string
 	URL           string
+	UserID        string
+}
+
+type GetShortenerUrls struct {
+	ID  string
+	URL string
+}
+
+type Claims struct {
+	jwt.RegisteredClaims
+	UserID string
 }

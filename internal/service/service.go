@@ -8,9 +8,6 @@ import (
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/Evlushin/shorturl/internal/repository"
-	"net/url"
-	"regexp"
-	"strings"
 )
 
 type Shortener struct {
@@ -28,13 +25,11 @@ func (f *Shortener) Ping(ctx context.Context) error {
 }
 
 func (f *Shortener) GetShortener(ctx context.Context, req *models.GetShortenerRequest) (*models.GetShortenerResponse, error) {
-	if err := getShortenerValidateRequest(req); err != nil {
+	if err := GetShortenerValidateRequest(req); err != nil {
 		return nil, err
 	}
 
-	repositoryResp, err := f.store.GetShortener(ctx, &models.GetShortenerRequest{
-		ID: req.ID,
-	})
+	repositoryResp, err := f.store.GetShortener(ctx, req)
 	if err != nil {
 		if !errors.Is(err, myerrors.ErrGetShortenerNotFound) {
 			return nil, fmt.Errorf("failed to fetch the shortener result from the store: %w", err)
@@ -52,42 +47,22 @@ func (f *Shortener) GetShortener(ctx context.Context, req *models.GetShortenerRe
 	return nil, fmt.Errorf("not found: %w", err)
 }
 
-func getShortenerValidateRequest(req *models.GetShortenerRequest) error {
-	validPattern := regexp.MustCompile(`^[A-Za-z0-9]{8}$`)
-	if !validPattern.MatchString(req.ID) {
-		return myerrors.ErrValidateShortenerInvalidRequest
-	}
+func (f *Shortener) GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error) {
 
-	return nil
-}
-
-func setShortenerValidateRequest(req *models.SetShortenerRequest) error {
-	_, err := url.ParseRequestURI(req.URL)
-
+	repositoryResp, err := f.store.GetShortenerUrls(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("%w : URL : %s", myerrors.ErrValidateShortenerInvalidRequest, req.URL)
-	}
-
-	return nil
-}
-
-func setShortenerBatchValidateRequest(req []models.RequestBatch) error {
-	notURL := make([]string, 0)
-	for _, item := range req {
-		err := setShortenerValidateRequest(&models.SetShortenerRequest{
-			URL: item.OriginalURL,
-		})
-
-		if err != nil {
-			notURL = append(notURL, item.OriginalURL)
+		if !errors.Is(err, myerrors.ErrGetShortenerNotFound) {
+			return nil, fmt.Errorf("failed to fetch the shortener result from the store: %w", err)
 		}
+
+		return nil, myerrors.ErrGetShortenerNotFound
 	}
 
-	if len(notURL) > 0 {
-		return fmt.Errorf("%w : URLs : %s", myerrors.ErrValidateShortenerInvalidRequest, strings.Join(notURL, ", "))
+	if repositoryResp != nil {
+		return repositoryResp, nil
 	}
 
-	return nil
+	return nil, myerrors.ErrGetShortenerNotFound
 }
 
 func (f *Shortener) generateRandomString(ctx context.Context, length uint8, limit uint16) (string, error) {
@@ -126,7 +101,7 @@ func (f *Shortener) generateRandomString(ctx context.Context, length uint8, limi
 
 func (f *Shortener) SetShortener(ctx context.Context, req *models.SetShortenerRequest) (*models.SetShortenerResponse, error) {
 
-	err := setShortenerValidateRequest(req)
+	err := SetShortenerValidateRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -146,8 +121,8 @@ func (f *Shortener) SetShortener(ctx context.Context, req *models.SetShortenerRe
 	}, err
 }
 
-func (f *Shortener) SetShortenerBatch(ctx context.Context, req []models.RequestBatch) ([]models.SetShortenerBatchRequest, error) {
-	if err := setShortenerBatchValidateRequest(req); err != nil {
+func (f *Shortener) SetShortenerBatch(ctx context.Context, req []models.RequestBatch, userID string) ([]models.SetShortenerBatchRequest, error) {
+	if err := SetShortenerBatchValidateRequest(req); err != nil {
 		return nil, err
 	}
 
@@ -163,6 +138,7 @@ func (f *Shortener) SetShortenerBatch(ctx context.Context, req []models.RequestB
 			CorrelationID: item.CorrelationID,
 			ID:            id,
 			URL:           item.OriginalURL,
+			UserID:        userID,
 		})
 	}
 

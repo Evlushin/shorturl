@@ -12,14 +12,14 @@ import (
 
 type Store struct {
 	mux *sync.RWMutex
-	s   map[string]string
+	s   map[string]map[string]string
 	cfg *config.Config
 }
 
 func NewStore(cfg *config.Config) (repository.Repository, error) {
 	return &Store{
 		mux: &sync.RWMutex{},
-		s:   make(map[string]string),
+		s:   make(map[string]map[string]string),
 		cfg: cfg,
 	}, nil
 }
@@ -32,7 +32,7 @@ func (s *Store) GetShortener(ctx context.Context, req *models.GetShortenerReques
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	res, ok := s.s[req.ID]
+	res, ok := s.s[req.UserID][req.ID]
 	if !ok {
 		return nil, newErrGetShortenerNotFound(req.ID)
 	}
@@ -41,19 +41,40 @@ func (s *Store) GetShortener(ctx context.Context, req *models.GetShortenerReques
 	}, nil
 }
 
+func (s *Store) GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error) {
+	res, ok := s.s[userID]
+	if !ok {
+		return nil, myerrors.ErrGetShortenerNotFound
+	}
+
+	var urls []models.GetShortenerUrls
+	for id, v := range res {
+		urls = append(urls, models.GetShortenerUrls{
+			ID:  id,
+			URL: v,
+		})
+	}
+
+	return urls, nil
+}
+
 func (s *Store) SetShortener(ctx context.Context, req *models.SetShortenerRequest) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
 	var errUniqueURL error
-	for key, v := range s.s {
+	for key, v := range s.s[req.UserID] {
 		if v == req.URL {
 			req.ID = key
 			errUniqueURL = myerrors.ErrConflictURL
 		}
 	}
 
-	s.s[req.ID] = req.URL
+	if s.s[req.UserID] == nil {
+		s.s[req.UserID] = make(map[string]string)
+	}
+
+	s.s[req.UserID][req.ID] = req.URL
 
 	return errUniqueURL
 }
@@ -63,14 +84,18 @@ func (s *Store) SetShortenerBatch(ctx context.Context, req []models.SetShortener
 	defer s.mux.Unlock()
 	var errUniqueURL error
 	for i, r := range req {
-		for key, v := range s.s {
+		for key, v := range s.s[r.UserID] {
 			if v == r.URL {
 				req[i].ID = key
 				r.ID = key
 				errUniqueURL = myerrors.ErrConflictURL
 			}
 		}
-		s.s[r.ID] = r.URL
+		if s.s[r.UserID] == nil {
+			s.s[r.UserID] = make(map[string]string)
+		}
+
+		s.s[r.UserID][r.ID] = r.URL
 	}
 
 	return errUniqueURL
