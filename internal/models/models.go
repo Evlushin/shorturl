@@ -30,8 +30,7 @@ type ErrorJSONResponse struct {
 }
 
 type GetShortenerRequest struct {
-	ID     string
-	UserID string
+	ID string
 }
 
 type SetShortenerResponse struct {

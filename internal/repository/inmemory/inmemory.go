@@ -32,13 +32,14 @@ func (s *Store) GetShortener(ctx context.Context, req *models.GetShortenerReques
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	res, ok := s.s[req.UserID][req.ID]
-	if !ok {
-		return nil, newErrGetShortenerNotFound(req.ID)
+	for _, shortMap := range s.s {
+		if url, exists := shortMap[req.ID]; exists {
+			return &models.GetShortenerResponse{
+				URL: url,
+			}, nil
+		}
 	}
-	return &models.GetShortenerResponse{
-		URL: res,
-	}, nil
+	return nil, newErrGetShortenerNotFound(req.ID)
 }
 
 func (s *Store) GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error) {

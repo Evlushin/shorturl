@@ -150,28 +150,10 @@ func (h *handlers) GetShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
 func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID, err := GetUserID(r, h.cfg)
-	if err != nil {
-		if errors.Is(err, myerrors.ErrValidateUserID) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		if errors.Is(err, http.ErrNoCookie) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		} else {
-			logger.Log.Error("failed set shortener", zap.Error(err))
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-	}
-
 	id := chi.URLParam(r, "id")
 
 	resp, err := h.shortener.GetShortener(ctx, &models.GetShortenerRequest{
-		ID:     id,
-		UserID: userID,
+		ID: id,
 	})
 	if err != nil {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) || errors.Is(err, myerrors.ErrGetShortenerNotFound) {
@@ -205,22 +187,11 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := GetUserID(r, h.cfg)
 	if err != nil {
-		if errors.Is(err, myerrors.ErrValidateUserID) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		if errors.Is(err, http.ErrNoCookie) {
-			userID = uuid.NewString()
-			err = SetUserCookie(w, h.cfg, userID)
-			if err != nil {
-				logger.Log.Error("failed set shortener", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		} else {
+		userID = uuid.NewString()
+		err = SetUserCookie(w, h.cfg, userID)
+		if err != nil {
 			logger.Log.Error("failed set shortener", zap.Error(err))
-			w.WriteHeader(http.StatusUnauthorized)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	}
@@ -281,24 +252,11 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := GetUserID(r, h.cfg)
 	if err != nil {
-		if errors.Is(err, myerrors.ErrValidateUserID) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		if errors.Is(err, http.ErrNoCookie) {
-
-			userID = uuid.NewString()
-
-			err = SetUserCookie(w, h.cfg, userID)
-			if err != nil {
-				logger.Log.Error("failed set shortener", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		} else {
-			logger.Log.Debug("failed set shortener", zap.Error(err))
-			w.WriteHeader(http.StatusUnauthorized)
+		userID = uuid.NewString()
+		err = SetUserCookie(w, h.cfg, userID)
+		if err != nil {
+			logger.Log.Error("failed set shortener", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	}
@@ -366,24 +324,11 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 
 	userID, err := GetUserID(r, h.cfg)
 	if err != nil {
-		if errors.Is(err, myerrors.ErrValidateUserID) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		if errors.Is(err, http.ErrNoCookie) {
-
-			userID = uuid.NewString()
-
-			err = SetUserCookie(w, h.cfg, userID)
-			if err != nil {
-				logger.Log.Error("failed set shortener", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		} else {
-			logger.Log.Debug("failed set shortener", zap.Error(err))
-			w.WriteHeader(http.StatusUnauthorized)
+		userID = uuid.NewString()
+		err = SetUserCookie(w, h.cfg, userID)
+		if err != nil {
+			logger.Log.Error("failed set shortener", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	}

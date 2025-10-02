@@ -52,7 +52,7 @@ func newErrGetShortenerNotFound(id string) error {
 
 func (st *Store) GetShortener(ctx context.Context, req *models.GetShortenerRequest) (*models.GetShortenerResponse, error) {
 	var res models.GetShortenerResponse
-	err := st.conn.QueryRowContext(ctx, `SELECT URL FROM shorteners WHERE ID = $1 AND USER_ID = $2 LIMIT 1`, req.ID, req.UserID).Scan(&res.URL)
+	err := st.conn.QueryRowContext(ctx, `SELECT URL FROM shorteners WHERE ID = $1 LIMIT 1`, req.ID).Scan(&res.URL)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

@@ -287,7 +287,7 @@ func Test_handlers_GetShortenerUrlsAPI(t *testing.T) {
 			requestGet.Header.Add("Content-Type", test.want.contentType)
 			resGet, err := ts.Client().Do(requestGet)
 			require.NoError(t, err)
-			defer resSet.Body.Close()
+			defer resGet.Body.Close()
 
 			resBodyGet, err := io.ReadAll(resGet.Body)
 			require.NoError(t, err)
