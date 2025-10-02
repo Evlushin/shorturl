@@ -12,6 +12,7 @@ import (
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -47,6 +48,9 @@ func newRouter(h *handlers) *chi.Mux {
 			r.Post("/", h.SetShortenerAPI)
 			r.Post("/batch", h.SetShortenerBatchAPI)
 		})
+		r.Route("/user", func(r chi.Router) {
+			r.Get("/urls", h.GetShortenerUrlsAPI)
+		})
 	})
 
 	return r
@@ -55,7 +59,8 @@ func newRouter(h *handlers) *chi.Mux {
 type Shortener interface {
 	GetShortener(ctx context.Context, req *models.GetShortenerRequest) (*models.GetShortenerResponse, error)
 	SetShortener(ctx context.Context, req *models.SetShortenerRequest) (*models.SetShortenerResponse, error)
-	SetShortenerBatch(ctx context.Context, req []models.RequestBatch) ([]models.SetShortenerBatchRequest, error)
+	SetShortenerBatch(ctx context.Context, req []models.RequestBatch, userID string) ([]models.SetShortenerBatchRequest, error)
+	GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error)
 	Ping(ctx context.Context) error
 }
 
@@ -71,8 +76,75 @@ func newHandlers(shortener Shortener, cfg config.Config) *handlers {
 	}
 }
 
+func (h *handlers) GetShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userID, err := GetUserID(r, h.cfg)
+	if err != nil {
+		if errors.Is(err, myerrors.ErrValidateUserID) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		if errors.Is(err, http.ErrNoCookie) {
+
+			userID = uuid.NewString()
+
+			err = SetUserCookie(w, h.cfg, userID)
+			if err != nil {
+				logger.Log.Error("failed set shortener", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else {
+			logger.Log.Debug("failed set shortener", zap.Error(err))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+	}
+
+	shorteners, err := h.shortener.GetShortenerUrls(ctx, userID)
+	if err != nil {
+		if errors.Is(err, myerrors.ErrGetShortenerNotFound) {
+			logger.Log.Debug("no content", zap.Int("status", http.StatusNoContent), zap.Error(err))
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		logger.Log.Error("failed to get shortener", zap.Error(err))
+		errorJSON(w, myerrors.ErrInternalServer.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var resp []models.ResponseUrls
+	for _, shortener := range shorteners {
+		fullURL := fmt.Sprintf("%s/%s", h.cfg.BaseAddr, shortener.ID)
+		resp = append(resp, models.ResponseUrls{
+			ShortURL:    fullURL,
+			OriginalURL: shortener.URL,
+		})
+	}
+
+	buf := new(bytes.Buffer)
+	err = json.NewEncoder(buf).Encode(resp)
+	if err != nil {
+		logger.Log.Error("failed json encode", zap.Error(err))
+		errorJSON(w, myerrors.ErrInternalServer.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	jsonBytes := buf.Bytes()
+	length := len(jsonBytes)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(length))
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}
+
 func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	id := chi.URLParam(r, "id")
 
 	resp, err := h.shortener.GetShortener(ctx, &models.GetShortenerRequest{
@@ -107,6 +179,18 @@ func (h *handlers) Ping(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	userID, err := GetUserID(r, h.cfg)
+	if err != nil {
+		userID = uuid.NewString()
+		err = SetUserCookie(w, h.cfg, userID)
+		if err != nil {
+			logger.Log.Error("failed set shortener", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -115,7 +199,8 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp, err := h.shortener.SetShortener(ctx, &models.SetShortenerRequest{
-		URL: string(body),
+		URL:    string(body),
+		UserID: userID,
 	})
 
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
@@ -159,6 +244,18 @@ func errorJSON(w http.ResponseWriter, message string, code int) {
 
 func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	userID, err := GetUserID(r, h.cfg)
+	if err != nil {
+		userID = uuid.NewString()
+		err = SetUserCookie(w, h.cfg, userID)
+		if err != nil {
+			logger.Log.Error("failed set shortener", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
 	if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
 		errorJSON(w, myerrors.ErrContentType.Error(), http.StatusBadRequest)
 		return
@@ -173,7 +270,8 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortener, err := h.shortener.SetShortener(ctx, &models.SetShortenerRequest{
-		URL: req.URL,
+		URL:    req.URL,
+		UserID: userID,
 	})
 
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
@@ -218,6 +316,18 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	userID, err := GetUserID(r, h.cfg)
+	if err != nil {
+		userID = uuid.NewString()
+		err = SetUserCookie(w, h.cfg, userID)
+		if err != nil {
+			logger.Log.Error("failed set shortener", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
 	if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
 		errorJSON(w, myerrors.ErrContentType.Error(), http.StatusBadRequest)
 		return
@@ -231,7 +341,7 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	shorteners, err := h.shortener.SetShortenerBatch(ctx, req)
+	shorteners, err := h.shortener.SetShortenerBatch(ctx, req, userID)
 
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
 	if err != nil && !isErrConflictURL {

@@ -64,21 +64,51 @@ func (st *Store) GetShortener(ctx context.Context, req *models.GetShortenerReque
 	return &res, nil
 }
 
+func (st *Store) GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error) {
+	rows, err := st.conn.QueryContext(ctx, `SELECT ID, URL FROM shorteners WHERE USER_ID = $1`, userID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.ErrGetShortenerNotFound
+		}
+		return nil, err
+	}
+
+	var res []models.GetShortenerUrls
+	for rows.Next() {
+		var url models.GetShortenerUrls
+		err = rows.Scan(&url.ID, &url.URL)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, url)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		fmt.Println(2)
+		return nil, err
+	}
+	fmt.Println(res)
+	return res, nil
+}
+
 func (st *Store) SetShortener(ctx context.Context, req *models.SetShortenerRequest) error {
 	var returnedID string
 	_, err := st.conn.ExecContext(ctx, `
         INSERT INTO shorteners
-        (ID, URL, created_at)
+        (ID, URL, CREATED_AT, USER_ID)
         VALUES
-        ($1, $2, $3);
-    `, req.ID, req.URL, time.Now())
+        ($1, $2, $3, $4);
+    `, req.ID, req.URL, time.Now(), req.UserID)
 
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
 			err = st.conn.QueryRowContext(ctx, `
-				SELECT ID FROM shorteners WHERE URL = $1
-			`, req.URL).Scan(&returnedID)
+				SELECT ID FROM shorteners WHERE URL = $1 AND USER_ID = $2 LIMIT 1
+			`, req.URL, req.UserID).Scan(&returnedID)
 
 			if err != nil {
 				return err
@@ -104,10 +134,10 @@ func (st *Store) insertShortenerBatch(ctx context.Context, req []*models.SetShor
 
 	stmt, err := tx.PrepareContext(ctx,
 		`INSERT INTO shorteners
-				(ID, URL, created_at)
+				(ID, URL, CREATED_AT, USER_ID)
 				VALUES
-				($1, $2, $3)
-				ON CONFLICT (URL) DO NOTHING
+				($1, $2, $3, $4)
+				ON CONFLICT (URL, USER_ID) DO NOTHING
 				RETURNING ID
 			   `)
 	if err != nil {
@@ -120,12 +150,12 @@ func (st *Store) insertShortenerBatch(ctx context.Context, req []*models.SetShor
 		errUniqueURL error
 	)
 	for key, r := range req {
-		err = stmt.QueryRowContext(ctx, r.ID, r.URL, time.Now()).Scan(&returnedID)
+		err = stmt.QueryRowContext(ctx, r.ID, r.URL, time.Now(), r.UserID).Scan(&returnedID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				err = st.conn.QueryRowContext(ctx, `
-					SELECT ID FROM shorteners WHERE URL = $1
-				`, r.URL).Scan(&returnedID)
+					SELECT ID FROM shorteners WHERE URL = $1 AND USER_ID = $2 LIMIT 1
+				`, r.URL, r.UserID).Scan(&returnedID)
 
 				if err != nil {
 					return err

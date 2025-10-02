@@ -17,18 +17,19 @@ type URLRecord struct {
 	UUID        string `json:"uuid"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
+	UserID      string `json:"user_id"`
 }
 
 type Store struct {
 	mux *sync.RWMutex
-	s   map[string]string
+	s   map[string]map[string]string
 	cfg *config.Config
 }
 
 func NewStore(cfg *config.Config) (repository.Repository, error) {
 	store := &Store{
 		mux: &sync.RWMutex{},
-		s:   make(map[string]string),
+		s:   make(map[string]map[string]string),
 		cfg: cfg,
 	}
 
@@ -55,9 +56,9 @@ func (st *Store) load() error {
 		return err
 	}
 
-	st.s = make(map[string]string)
+	st.s = make(map[string]map[string]string)
 	for _, rec := range arr {
-		st.s[rec.ShortURL] = rec.OriginalURL
+		st.s[rec.UserID][rec.ShortURL] = rec.OriginalURL
 	}
 
 	return nil
@@ -69,14 +70,17 @@ func (st *Store) save() error {
 
 	arr := make([]URLRecord, 0, len(st.s))
 	id := 1
-	for shortURL, originalURL := range st.s {
-		rec := URLRecord{
-			UUID:        strconv.Itoa(id),
-			ShortURL:    shortURL,
-			OriginalURL: originalURL,
+	for userID, urlRecords := range st.s {
+		for shortURL, originalURL := range urlRecords {
+			rec := URLRecord{
+				UUID:        strconv.Itoa(id),
+				ShortURL:    shortURL,
+				OriginalURL: originalURL,
+				UserID:      userID,
+			}
+			arr = append(arr, rec)
+			id++
 		}
-		arr = append(arr, rec)
-		id++
 	}
 
 	data, err := json.Marshal(arr)
@@ -94,26 +98,48 @@ func (st *Store) GetShortener(ctx context.Context, req *models.GetShortenerReque
 	st.mux.Lock()
 	defer st.mux.Unlock()
 
-	res, ok := st.s[req.ID]
-	if !ok {
-		return nil, newErrGetShortenerNotFound(req.ID)
+	for _, shortMap := range st.s {
+		if url, exists := shortMap[req.ID]; exists {
+			return &models.GetShortenerResponse{
+				URL: url,
+			}, nil
+		}
 	}
-	return &models.GetShortenerResponse{
-		URL: res,
-	}, nil
+	return nil, newErrGetShortenerNotFound(req.ID)
+}
+
+func (st *Store) GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error) {
+	res, ok := st.s[userID]
+	if !ok {
+		return nil, myerrors.ErrGetShortenerNotFound
+	}
+
+	var urls []models.GetShortenerUrls
+	for id, v := range res {
+		urls = append(urls, models.GetShortenerUrls{
+			ID:  id,
+			URL: v,
+		})
+	}
+
+	return urls, nil
 }
 
 func (st *Store) SetShortener(ctx context.Context, req *models.SetShortenerRequest) error {
 	st.mux.Lock()
 	var errUniqueURL error
-	for key, v := range st.s {
+	for key, v := range st.s[req.UserID] {
 		if v == req.URL {
 			req.ID = key
 			errUniqueURL = myerrors.ErrConflictURL
 		}
 	}
 
-	st.s[req.ID] = req.URL
+	if st.s[req.UserID] == nil {
+		st.s[req.UserID] = make(map[string]string)
+	}
+
+	st.s[req.UserID][req.ID] = req.URL
 	st.mux.Unlock()
 
 	err := st.save()
@@ -128,14 +154,18 @@ func (st *Store) SetShortenerBatch(ctx context.Context, req []models.SetShortene
 	st.mux.Lock()
 	var errUniqueURL error
 	for i, r := range req {
-		for key, v := range st.s {
+		for key, v := range st.s[r.UserID] {
 			if v == r.URL {
 				req[i].ID = key
 				r.ID = key
 				errUniqueURL = myerrors.ErrConflictURL
 			}
 		}
-		st.s[r.ID] = r.URL
+		if st.s[r.UserID] == nil {
+			st.s[r.UserID] = make(map[string]string)
+		}
+
+		st.s[r.UserID][r.ID] = r.URL
 	}
 	st.mux.Unlock()
 
