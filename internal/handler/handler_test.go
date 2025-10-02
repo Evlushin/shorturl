@@ -19,6 +19,7 @@ import (
 func getHandlersMemory() *handlers {
 	cfg := config.Config{}
 	cfg.Handlers.ServerAddr = "localhost:8080"
+	cfg.Handlers.SecretKey = "123"
 	store, _ := inmemory.NewStore(&cfg)
 	shortenerService := service.NewShortener(store)
 	return newHandlers(shortenerService, cfg.Handlers)
@@ -98,6 +99,7 @@ func Test_handlers_GetShortener(t *testing.T) {
 			require.NoError(t, err)
 			requestSet.Header.Add("Content-Type", test.want.contentType)
 			resSet, err := ts.Client().Do(requestSet)
+
 			require.NoError(t, err)
 			defer resSet.Body.Close()
 
@@ -107,6 +109,9 @@ func Test_handlers_GetShortener(t *testing.T) {
 			require.NoError(t, err)
 
 			requestGet, err := http.NewRequest(http.MethodGet, ts.URL+parseURL.Path, nil)
+			for _, cookie := range resSet.Cookies() {
+				requestGet.AddCookie(cookie)
+			}
 			require.NoError(t, err)
 			requestGet.Header.Add("Content-Type", test.want.contentType)
 
@@ -232,6 +237,79 @@ func Test_handlers_SetShortenerBatchAPI(t *testing.T) {
 
 			assert.Equal(t, test.want.code, resSet.StatusCode)
 			assert.Equal(t, test.want.contentType, resSet.Header.Get("Content-Type"))
+		})
+	}
+}
+
+func Test_handlers_GetShortenerUrlsAPI(t *testing.T) {
+	h := getHandlersMemory()
+	ts := httptest.NewServer(newRouter(h))
+	defer ts.Close()
+
+	type want struct {
+		code        int
+		request     string
+		contentType string
+	}
+	tests := []struct {
+		name string
+		want want
+	}{
+		{
+			name: "positive test #1",
+			want: want{
+				code: 200,
+				request: `[
+								{"correlation_id":"1","original_url":"https://practicum.yandex.ru/"},
+								{"correlation_id":"2","original_url":"https://www.google.com/"}
+						]`,
+				contentType: "application/json",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			requestSet, err := http.NewRequest(http.MethodPost, ts.URL+"/api/shorten/batch", strings.NewReader(test.want.request))
+			require.NoError(t, err)
+			requestSet.Header.Add("Content-Type", test.want.contentType)
+			resSet, err := ts.Client().Do(requestSet)
+			require.NoError(t, err)
+			defer resSet.Body.Close()
+
+			_, err = io.ReadAll(resSet.Body)
+			require.NoError(t, err)
+
+			requestGet, err := http.NewRequest(http.MethodGet, ts.URL+"/api/user/urls", nil)
+			for _, cookie := range resSet.Cookies() {
+				requestGet.AddCookie(cookie)
+			}
+			require.NoError(t, err)
+			requestGet.Header.Add("Content-Type", test.want.contentType)
+			resGet, err := ts.Client().Do(requestGet)
+			require.NoError(t, err)
+			defer resSet.Body.Close()
+
+			resBodyGet, err := io.ReadAll(resGet.Body)
+			require.NoError(t, err)
+
+			var response []map[string]string
+
+			err = json.Unmarshal(resBodyGet, &response)
+			require.NoError(t, err)
+
+			for _, r := range response {
+				assert.Contains(t, r, "short_url", "JSON должен содержать ключ 'short_url'")
+				assert.Contains(t, r, "original_url", "JSON должен содержать ключ 'original_url'")
+
+				_, err = url.Parse(r["short_url"])
+				require.NoError(t, err)
+
+				_, err = url.Parse(r["original_url"])
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, test.want.code, resGet.StatusCode)
+			assert.Equal(t, test.want.contentType, resGet.Header.Get("Content-Type"))
 		})
 	}
 }
