@@ -17,6 +17,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func Serve(cfg config.Config, shortener Shortener) error {
@@ -49,7 +50,10 @@ func newRouter(h *handlers) *chi.Mux {
 			r.Post("/batch", h.SetShortenerBatchAPI)
 		})
 		r.Route("/user", func(r chi.Router) {
-			r.Get("/urls", h.GetShortenerUrlsAPI)
+			r.Route("/urls", func(r chi.Router) {
+				r.Get("/", h.GetShortenerUrlsAPI)
+				r.Delete("/", h.DeleteShortenerUrlsAPI)
+			})
 		})
 	})
 
@@ -61,6 +65,7 @@ type Shortener interface {
 	SetShortener(ctx context.Context, req *models.SetShortenerRequest) (*models.SetShortenerResponse, error)
 	SetShortenerBatch(ctx context.Context, req []models.RequestBatch, userID string) ([]models.SetShortenerBatchRequest, error)
 	GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error)
+	DeleteShortenerUrls(ctx context.Context, req []models.RequestIDBatch, userID string) error
 	Ping(ctx context.Context) error
 }
 
@@ -74,6 +79,55 @@ func newHandlers(shortener Shortener, cfg config.Config) *handlers {
 		shortener: shortener,
 		cfg:       cfg,
 	}
+}
+
+func (h *handlers) DeleteShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
+
+	userID, err := GetUserID(r, h.cfg)
+	if err != nil {
+		if errors.Is(err, myerrors.ErrValidateUserID) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		if errors.Is(err, http.ErrNoCookie) {
+
+			userID = uuid.NewString()
+
+			err = SetUserCookie(w, h.cfg, userID)
+			if err != nil {
+				logger.Log.Error("failed set shortener", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else {
+			logger.Log.Debug("failed set shortener", zap.Error(err))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+	}
+
+	var req []models.RequestIDBatch
+	dec := json.NewDecoder(r.Body)
+	if err := dec.Decode(&req); err != nil {
+		logger.Log.Debug("failed decode json", zap.Int("status", http.StatusBadRequest), zap.Error(err))
+		errorJSON(w, myerrors.ErrJSONDecode.Error(), http.StatusBadRequest)
+		return
+	}
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		err = h.shortener.DeleteShortenerUrls(ctx, req, userID)
+		if err != nil {
+			logger.Log.Error("failed to get shortener", zap.Error(err))
+			return
+		}
+	}()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *handlers) GetShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
@@ -152,10 +206,17 @@ func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) || errors.Is(err, myerrors.ErrGetShortenerNotFound) {
-			logger.Log.Debug("bad request", zap.Int("status", 400), zap.Error(err))
+			logger.Log.Debug("bad request", zap.Int("status", http.StatusBadRequest), zap.Error(err))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		if errors.Is(err, myerrors.ErrGone410) {
+			logger.Log.Debug("bad request", zap.Int("status", http.StatusGone), zap.Error(err))
+			http.Error(w, err.Error(), http.StatusGone)
+			return
+		}
+
 		logger.Log.Error("failed to get shortener", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -206,7 +267,7 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
 	if err != nil && !isErrConflictURL {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
-			logger.Log.Debug("bad request", zap.Int("status", 400), zap.Error(err))
+			logger.Log.Debug("bad request", zap.Int("status", http.StatusBadRequest), zap.Error(err))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -264,7 +325,7 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 	var req models.Request
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(&req); err != nil {
-		logger.Log.Debug("failed decode json", zap.Int("status", 400), zap.Error(err))
+		logger.Log.Debug("failed decode json", zap.Int("status", http.StatusBadRequest), zap.Error(err))
 		errorJSON(w, myerrors.ErrJSONDecode.Error(), http.StatusBadRequest)
 		return
 	}
@@ -277,7 +338,7 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
 	if err != nil && !isErrConflictURL {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
-			logger.Log.Debug("bad request", zap.Int("status", 400), zap.Error(err))
+			logger.Log.Debug("bad request", zap.Int("status", http.StatusBadRequest), zap.Error(err))
 			errorJSON(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -336,7 +397,7 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 	var req []models.RequestBatch
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(&req); err != nil {
-		logger.Log.Debug("failed decode json", zap.Int("status", 400), zap.Error(err))
+		logger.Log.Debug("failed decode json", zap.Int("status", http.StatusBadRequest), zap.Error(err))
 		errorJSON(w, myerrors.ErrJSONDecode.Error(), http.StatusBadRequest)
 		return
 	}
@@ -346,7 +407,7 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
 	if err != nil && !isErrConflictURL {
 		if errors.Is(err, myerrors.ErrGetShortenerInvalidRequest) || errors.Is(err, myerrors.ErrValidateShortenerInvalidRequest) {
-			logger.Log.Debug("bad request", zap.Int("status", 400), zap.Error(err))
+			logger.Log.Debug("bad request", zap.Int("status", http.StatusBadRequest), zap.Error(err))
 			errorJSON(w, err.Error(), http.StatusBadRequest)
 			return
 		}

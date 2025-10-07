@@ -11,6 +11,8 @@ type RequestBatch struct {
 	OriginalURL   string `json:"original_url"`
 }
 
+type RequestIDBatch string
+
 type Response struct {
 	Result string `json:"result"`
 }
@@ -43,7 +45,8 @@ type SetShortenerBatchResponse struct {
 }
 
 type GetShortenerResponse struct {
-	URL string
+	URL       string
+	IsDeleted bool
 }
 
 type SetShortenerRequest struct {

@@ -38,13 +38,19 @@ func (f *Shortener) GetShortener(ctx context.Context, req *models.GetShortenerRe
 		return nil, fmt.Errorf("not found: %w", err)
 	}
 
-	if repositoryResp != nil {
-		return &models.GetShortenerResponse{
-			URL: repositoryResp.URL,
-		}, nil
+	if repositoryResp == nil {
+		return nil, fmt.Errorf("not found: %w", err)
 	}
 
-	return nil, fmt.Errorf("not found: %w", err)
+	if repositoryResp.IsDeleted {
+		return repositoryResp, myerrors.ErrGone410
+	}
+
+	return repositoryResp, nil
+}
+
+func (f *Shortener) DeleteShortenerUrls(ctx context.Context, req []models.RequestIDBatch, userID string) error {
+	return f.store.DeleteShortenerUrls(ctx, req, userID)
 }
 
 func (f *Shortener) GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error) {

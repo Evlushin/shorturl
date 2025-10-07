@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Evlushin/shorturl/internal/config"
 	"github.com/Evlushin/shorturl/internal/repository/inmemory"
 	"github.com/Evlushin/shorturl/internal/service"
@@ -310,6 +311,61 @@ func Test_handlers_GetShortenerUrlsAPI(t *testing.T) {
 
 			assert.Equal(t, test.want.code, resGet.StatusCode)
 			assert.Equal(t, test.want.contentType, resGet.Header.Get("Content-Type"))
+		})
+	}
+}
+
+func Test_handlers_DeleteShortenerUrlsAPI(t *testing.T) {
+	h := getHandlersMemory()
+	ts := httptest.NewServer(newRouter(h))
+	defer ts.Close()
+
+	type want struct {
+		code        int
+		request     string
+		contentType string
+	}
+	tests := []struct {
+		name string
+		want want
+	}{
+		{
+			name: "positive test #1",
+			want: want{
+				code:        202,
+				request:     `https://practicum.yandex.ru/`,
+				contentType: "application/json",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			requestSet, err := http.NewRequest(http.MethodPost, ts.URL+"/", strings.NewReader(test.want.request))
+			require.NoError(t, err)
+			requestSet.Header.Add("Content-Type", "text/plain")
+			resSet, err := ts.Client().Do(requestSet)
+
+			require.NoError(t, err)
+			defer resSet.Body.Close()
+
+			resBodySet, err := io.ReadAll(resSet.Body)
+			require.NoError(t, err)
+			parseURL, err := url.Parse(string(resBodySet))
+			require.NoError(t, err)
+
+			id := strings.TrimPrefix(parseURL.Path, "/")
+
+			requestGet, err := http.NewRequest(http.MethodDelete, ts.URL+"/api/user/urls", strings.NewReader(fmt.Sprintf(`["%s"]`, id)))
+			for _, cookie := range resSet.Cookies() {
+				requestGet.AddCookie(cookie)
+			}
+			require.NoError(t, err)
+			requestGet.Header.Add("Content-Type", test.want.contentType)
+			resGet, err := ts.Client().Do(requestGet)
+			require.NoError(t, err)
+			defer resGet.Body.Close()
+
+			assert.Equal(t, test.want.code, resGet.StatusCode)
 		})
 	}
 }

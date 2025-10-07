@@ -12,4 +12,5 @@ var (
 	ErrInternalServer                  = errors.New("internal Server Error")
 	ErrConflictURL                     = errors.New("URL conflict")
 	ErrValidateUserID                  = errors.New("UserID not validate")
+	ErrGone410                         = errors.New("item deleted")
 )
