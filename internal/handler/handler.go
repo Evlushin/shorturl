@@ -129,12 +129,6 @@ func (h *handlers) GetShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !user.FromCookie {
-		logger.Log.Debug("unauthorized user")
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
 	shorteners, err := h.shortener.GetShortenerUrls(ctx, user.UserID)
 	if err != nil {
 		if errors.Is(err, myerrors.ErrGetShortenerNotFound) {
