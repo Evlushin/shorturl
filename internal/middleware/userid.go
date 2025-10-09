@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/Evlushin/shorturl/internal/logger"
@@ -14,14 +13,12 @@ import (
 	"time"
 )
 
-const UserKey ContextKey = "user"
-
 type Claims struct {
 	jwt.RegisteredClaims `json:",inline"`
 	UserID               string `json:"user_id"`
 }
 
-func UserIDMiddleware(cfg config.Config) func(next http.Handler) http.Handler {
+func UserIDMiddleware(cfg *config.Config) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, err := GetUser(r, cfg)
@@ -37,13 +34,14 @@ func UserIDMiddleware(cfg config.Config) func(next http.Handler) http.Handler {
 					return
 				}
 			}
-			ctx := context.WithValue(r.Context(), UserKey, user)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			cfg.User = *user
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }
 
-func BuildJWTString(userID string, cfg config.Config) (string, error) {
+func BuildJWTString(userID string, cfg *config.Config) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(365 * 24 * time.Hour)),
@@ -59,7 +57,7 @@ func BuildJWTString(userID string, cfg config.Config) (string, error) {
 	return tokenString, nil
 }
 
-func SetUserCookie(w http.ResponseWriter, cfg config.Config, userID string) error {
+func SetUserCookie(w http.ResponseWriter, cfg *config.Config, userID string) error {
 	signature, err := BuildJWTString(userID, cfg)
 	if err != nil {
 		return err
@@ -77,7 +75,7 @@ func SetUserCookie(w http.ResponseWriter, cfg config.Config, userID string) erro
 	return nil
 }
 
-func GetUser(r *http.Request, cfg config.Config) (*models.Users, error) {
+func GetUser(r *http.Request, cfg *config.Config) (*models.Users, error) {
 	cookie, err := r.Cookie("jwt")
 	if err != nil {
 		return nil, err
