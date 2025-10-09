@@ -1,7 +1,5 @@
 package models
 
-import "github.com/golang-jwt/jwt/v4"
-
 type Request struct {
 	URL string `json:"url"`
 }
@@ -32,42 +30,42 @@ type ErrorJSONResponse struct {
 }
 
 type GetShortenerRequest struct {
-	ID string
+	ID string `json:"id"`
 }
 
 type SetShortenerResponse struct {
-	ID string
+	ID string `json:"id"`
 }
 
 type SetShortenerBatchResponse struct {
-	CorrelationID string
-	ID            string
+	CorrelationID string `json:"correlation_id"`
+	ID            string `json:"id"`
 }
 
 type GetShortenerResponse struct {
-	URL       string
-	IsDeleted bool
+	URL       string `json:"url"`
+	IsDeleted bool   `json:"is_deleted"`
 }
 
 type SetShortenerRequest struct {
-	ID     string
-	URL    string
-	UserID string
+	ID     string `json:"id"`
+	URL    string `json:"url"`
+	UserID string `json:"user_id"`
 }
 
 type SetShortenerBatchRequest struct {
-	CorrelationID string
-	ID            string
-	URL           string
-	UserID        string
+	CorrelationID string `json:"correlation_id"`
+	ID            string `json:"id"`
+	URL           string `json:"url"`
+	UserID        string `json:"user_id"`
 }
 
 type GetShortenerUrls struct {
-	ID  string
-	URL string
+	ID  string `json:"id"`
+	URL string `json:"url"`
 }
 
-type Claims struct {
-	jwt.RegisteredClaims
-	UserID string
+type Users struct {
+	UserID     string `json:"user_id"`
+	FromCookie bool   `json:"from_cookie"`
 }

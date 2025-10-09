@@ -5,19 +5,44 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/Evlushin/shorturl/internal/config"
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/Evlushin/shorturl/internal/repository"
+	"github.com/Evlushin/shorturl/internal/repository/file"
+	"github.com/Evlushin/shorturl/internal/repository/inmemory"
+	"github.com/Evlushin/shorturl/internal/repository/pg"
 )
 
 type Shortener struct {
 	store repository.Repository
 }
 
-func NewShortener(store repository.Repository) *Shortener {
+func NewShortener(cfg config.Config) (*Shortener, error) {
+	store, err := NewRepository(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Shortener{
 		store: store,
+	}, nil
+}
+
+func NewRepository(cfg *config.Config) (repository.Repository, error) {
+	if cfg.DatabaseDsn != "" {
+		return pg.NewStore(cfg)
 	}
+
+	if cfg.FileStorePath != "" {
+		return file.NewStore(cfg)
+	}
+
+	return inmemory.NewStore(cfg)
+}
+
+func (f *Shortener) Close() error {
+	return f.store.Close()
 }
 
 func (f *Shortener) Ping(ctx context.Context) error {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/Evlushin/shorturl/internal/logger"
-	"github.com/Evlushin/shorturl/internal/repository"
 	"log"
 
 	"github.com/Evlushin/shorturl/internal/config"
@@ -23,13 +22,11 @@ func run() error {
 		return err
 	}
 
-	store, err := repository.NewRepository(&cfg)
+	shortenerService, err := service.NewShortener(cfg)
 	if err != nil {
 		return err
 	}
-	defer store.Close()
-
-	shortenerService := service.NewShortener(store)
+	defer shortenerService.Close()
 
 	return handler.Serve(cfg.Handlers, shortenerService)
 }

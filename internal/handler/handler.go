@@ -12,7 +12,6 @@ import (
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -39,6 +38,7 @@ func newRouter(h *handlers) *chi.Mux {
 
 	r.Use(logger.RequestLogger)
 	r.Use(middleware.GzipMiddleware)
+	r.Use(middleware.UserIDMiddleware(h.cfg))
 
 	r.Post("/", h.SetShortener)
 	r.Get("/{id}", h.GetShortener)
@@ -66,6 +66,7 @@ type Shortener interface {
 	SetShortenerBatch(ctx context.Context, req []models.RequestBatch, userID string) ([]models.SetShortenerBatchRequest, error)
 	GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error)
 	DeleteShortenerUrls(ctx context.Context, req []models.RequestIDBatch, userID string) error
+	Close() error
 	Ping(ctx context.Context) error
 }
 
@@ -82,29 +83,18 @@ func newHandlers(shortener Shortener, cfg config.Config) *handlers {
 }
 
 func (h *handlers) DeleteShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value(middleware.UserKey).(*models.Users)
+	if !ok || user.UserID == "" {
+		logger.Log.Error("user ID not found in context")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	userID, err := GetUserID(r, h.cfg)
-	if err != nil {
-		if errors.Is(err, myerrors.ErrValidateUserID) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		if errors.Is(err, http.ErrNoCookie) {
-
-			userID = uuid.NewString()
-
-			err = SetUserCookie(w, h.cfg, userID)
-			if err != nil {
-				logger.Log.Error("failed set shortener", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		} else {
-			logger.Log.Debug("failed set shortener", zap.Error(err))
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
+	if !user.FromCookie {
+		logger.Log.Debug("unauthorized user")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
 	}
 
 	var req []models.RequestIDBatch
@@ -115,11 +105,11 @@ func (h *handlers) DeleteShortenerUrlsAPI(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-		err = h.shortener.DeleteShortenerUrls(ctx, req, userID)
+	go func() {
+		err := h.shortener.DeleteShortenerUrls(ctx, req, user.UserID)
 		if err != nil {
 			logger.Log.Error("failed to get shortener", zap.Error(err))
 			return
@@ -132,32 +122,20 @@ func (h *handlers) DeleteShortenerUrlsAPI(w http.ResponseWriter, r *http.Request
 
 func (h *handlers) GetShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	userID, err := GetUserID(r, h.cfg)
-	if err != nil {
-		if errors.Is(err, myerrors.ErrValidateUserID) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		if errors.Is(err, http.ErrNoCookie) {
-
-			userID = uuid.NewString()
-
-			err = SetUserCookie(w, h.cfg, userID)
-			if err != nil {
-				logger.Log.Error("failed set shortener", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		} else {
-			logger.Log.Debug("failed set shortener", zap.Error(err))
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
+	user, ok := r.Context().Value(middleware.UserKey).(*models.Users)
+	if !ok || user.UserID == "" {
+		logger.Log.Error("user ID not found in context")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	shorteners, err := h.shortener.GetShortenerUrls(ctx, userID)
+	if !user.FromCookie {
+		logger.Log.Debug("unauthorized user")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	shorteners, err := h.shortener.GetShortenerUrls(ctx, user.UserID)
 	if err != nil {
 		if errors.Is(err, myerrors.ErrGetShortenerNotFound) {
 			logger.Log.Debug("no content", zap.Int("status", http.StatusNoContent), zap.Error(err))
@@ -240,16 +218,11 @@ func (h *handlers) Ping(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	userID, err := GetUserID(r, h.cfg)
-	if err != nil {
-		userID = uuid.NewString()
-		err = SetUserCookie(w, h.cfg, userID)
-		if err != nil {
-			logger.Log.Error("failed set shortener", zap.Error(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	user, ok := ctx.Value(middleware.UserKey).(*models.Users)
+	if !ok || user.UserID == "" {
+		logger.Log.Error("user ID not found in context")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	body, err := io.ReadAll(r.Body)
@@ -261,7 +234,7 @@ func (h *handlers) SetShortener(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := h.shortener.SetShortener(ctx, &models.SetShortenerRequest{
 		URL:    string(body),
-		UserID: userID,
+		UserID: user.UserID,
 	})
 
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
@@ -305,16 +278,11 @@ func errorJSON(w http.ResponseWriter, message string, code int) {
 
 func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	userID, err := GetUserID(r, h.cfg)
-	if err != nil {
-		userID = uuid.NewString()
-		err = SetUserCookie(w, h.cfg, userID)
-		if err != nil {
-			logger.Log.Error("failed set shortener", zap.Error(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	user, ok := ctx.Value(middleware.UserKey).(*models.Users)
+	if !ok || user.UserID == "" {
+		logger.Log.Error("user ID not found in context")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
@@ -332,7 +300,7 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 
 	shortener, err := h.shortener.SetShortener(ctx, &models.SetShortenerRequest{
 		URL:    req.URL,
-		UserID: userID,
+		UserID: user.UserID,
 	})
 
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
@@ -377,16 +345,11 @@ func (h *handlers) SetShortenerAPI(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	userID, err := GetUserID(r, h.cfg)
-	if err != nil {
-		userID = uuid.NewString()
-		err = SetUserCookie(w, h.cfg, userID)
-		if err != nil {
-			logger.Log.Error("failed set shortener", zap.Error(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	user, ok := ctx.Value(middleware.UserKey).(*models.Users)
+	if !ok || user.UserID == "" {
+		logger.Log.Error("user ID not found in context")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
@@ -402,7 +365,7 @@ func (h *handlers) SetShortenerBatchAPI(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	shorteners, err := h.shortener.SetShortenerBatch(ctx, req, userID)
+	shorteners, err := h.shortener.SetShortenerBatch(ctx, req, user.UserID)
 
 	isErrConflictURL := errors.Is(err, myerrors.ErrConflictURL)
 	if err != nil && !isErrConflictURL {
