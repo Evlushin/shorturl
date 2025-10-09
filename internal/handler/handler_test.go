@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Evlushin/shorturl/internal/config"
-	"github.com/Evlushin/shorturl/internal/repository/inmemory"
 	"github.com/Evlushin/shorturl/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,8 +20,10 @@ func getHandlersMemory() *handlers {
 	cfg := config.Config{}
 	cfg.Handlers.ServerAddr = "localhost:8080"
 	cfg.Handlers.SecretKey = "123"
-	store, _ := inmemory.NewStore(&cfg)
-	shortenerService := service.NewShortener(store)
+	shortenerService, err := service.NewShortener(cfg)
+	if err != nil {
+		panic(err)
+	}
 	return newHandlers(shortenerService, cfg.Handlers)
 }
 
