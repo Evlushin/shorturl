@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX IF NOT EXISTS unique_url_idx ON shorteners (URL);

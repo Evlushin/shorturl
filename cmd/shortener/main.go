@@ -2,10 +2,6 @@ package main
 
 import (
 	"github.com/Evlushin/shorturl/internal/logger"
-	"github.com/Evlushin/shorturl/internal/repository"
-	"github.com/Evlushin/shorturl/internal/repository/file"
-	"github.com/Evlushin/shorturl/internal/repository/inmemory"
-	"github.com/Evlushin/shorturl/internal/repository/pg"
 	"log"
 
 	"github.com/Evlushin/shorturl/internal/config"
@@ -26,25 +22,11 @@ func run() error {
 		return err
 	}
 
-	store, err := NewRepository(&cfg)
+	shortenerService, err := service.NewShortener(cfg)
 	if err != nil {
 		return err
 	}
-	defer store.Close()
-
-	shortenerService := service.NewShortener(store)
+	defer shortenerService.Close()
 
 	return handler.Serve(cfg.Handlers, shortenerService)
-}
-
-func NewRepository(cfg *config.Config) (repository.Repository, error) {
-	if cfg.DatabaseDsn != "" {
-		return pg.NewStore(cfg)
-	}
-
-	if cfg.FileStorePath != "" {
-		return file.NewStore(cfg)
-	}
-
-	return inmemory.NewStore(cfg)
 }

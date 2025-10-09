@@ -3,6 +3,8 @@ package config
 import (
 	"flag"
 	handlersConfig "github.com/Evlushin/shorturl/internal/handler/config"
+	"github.com/Evlushin/shorturl/internal/models"
+	"github.com/google/uuid"
 	"os"
 )
 
@@ -23,6 +25,7 @@ func GetConfig() Config {
 	//flag.StringVar(&cfg.DatabaseDsn, "d", "host=127.127.126.41 port=5432 dbname=shorturl user=shorturl password=shorturl connect_timeout=10 sslmode=prefer", "connection string")
 	flag.StringVar(&cfg.FileStorePath, "f", "", "address storage")
 	flag.StringVar(&cfg.DatabaseDsn, "d", "", "connection string")
+	flag.StringVar(&cfg.Handlers.SecretKey, "s", uuid.NewString(), "secret key")
 	flag.Parse()
 
 	if serverAddr := os.Getenv("SERVER_ADDRESS"); serverAddr != "" {
@@ -44,6 +47,12 @@ func GetConfig() Config {
 	if databaseDsn := os.Getenv("DATABASE_DSN"); databaseDsn != "" {
 		cfg.DatabaseDsn = databaseDsn
 	}
+
+	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
+		cfg.Handlers.SecretKey = secretKey
+	}
+
+	cfg.Handlers.User = models.Users{}
 
 	return cfg
 }

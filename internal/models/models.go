@@ -9,6 +9,8 @@ type RequestBatch struct {
 	OriginalURL   string `json:"original_url"`
 }
 
+type RequestIDBatch string
+
 type Response struct {
 	Result string `json:"result"`
 }
@@ -18,34 +20,52 @@ type ResponseBatch struct {
 	ShortURL      string `json:"short_url"`
 }
 
+type ResponseUrls struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
 type ErrorJSONResponse struct {
 	Message string `json:"message"`
 }
 
 type GetShortenerRequest struct {
-	ID string
+	ID string `json:"id"`
 }
 
 type SetShortenerResponse struct {
-	ID string
+	ID string `json:"id"`
 }
 
 type SetShortenerBatchResponse struct {
-	CorrelationID string
-	ID            string
+	CorrelationID string `json:"correlation_id"`
+	ID            string `json:"id"`
 }
 
 type GetShortenerResponse struct {
-	URL string
+	URL       string `json:"url"`
+	IsDeleted bool   `json:"is_deleted"`
 }
 
 type SetShortenerRequest struct {
-	ID  string
-	URL string
+	ID     string `json:"id"`
+	URL    string `json:"url"`
+	UserID string `json:"user_id"`
 }
 
 type SetShortenerBatchRequest struct {
-	CorrelationID string
-	ID            string
-	URL           string
+	CorrelationID string `json:"correlation_id"`
+	ID            string `json:"id"`
+	URL           string `json:"url"`
+	UserID        string `json:"user_id"`
+}
+
+type GetShortenerUrls struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
+}
+
+type Users struct {
+	UserID     string `json:"user_id"`
+	FromCookie bool   `json:"from_cookie"`
 }
