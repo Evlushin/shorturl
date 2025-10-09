@@ -84,6 +84,7 @@ func newHandlers(shortener Shortener, cfg config.Config) *handlers {
 
 func (h *handlers) DeleteShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	user, ok := ctx.Value(middleware.UserKey).(*models.Users)
 	if !ok || user.UserID == "" {
 		logger.Log.Error("user ID not found in context")
@@ -105,11 +106,11 @@ func (h *handlers) DeleteShortenerUrlsAPI(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
 	go func() {
-		err := h.shortener.DeleteShortenerUrls(ctx, req, user.UserID)
+		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		err := h.shortener.DeleteShortenerUrls(ctxWithTimeout, req, user.UserID)
 		if err != nil {
 			logger.Log.Error("failed to get shortener", zap.Error(err))
 			return
