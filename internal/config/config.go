@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	handlersConfig "github.com/Evlushin/shorturl/internal/handler/config"
+	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/google/uuid"
 	"os"
 )
@@ -50,6 +51,8 @@ func GetConfig() Config {
 	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
 		cfg.Handlers.SecretKey = secretKey
 	}
+
+	cfg.Handlers.User = models.Users{}
 
 	return cfg
 }
