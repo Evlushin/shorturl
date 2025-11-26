@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"github.com/Evlushin/shorturl/internal/handler/config"
+	"github.com/Evlushin/shorturl/internal/handler/utils/auth"
 	"github.com/Evlushin/shorturl/internal/logger"
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
@@ -34,9 +35,9 @@ func UserIDMiddleware(cfg *config.Config) func(next http.Handler) http.Handler {
 					return
 				}
 			}
-			cfg.User = *user
+			ctx := auth.WithUser(r.Context(), user)
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

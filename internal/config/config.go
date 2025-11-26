@@ -3,7 +3,6 @@ package config
 import (
 	"flag"
 	handlersConfig "github.com/Evlushin/shorturl/internal/handler/config"
-	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/google/uuid"
 	"os"
 )
@@ -18,6 +17,8 @@ type Config struct {
 func GetConfig() Config {
 	cfg := Config{}
 
+	flag.StringVar(&cfg.Handlers.Audit.AuditFile, "audit-file", "audit.txt", "path to the destination file where audit logs are saved")
+	flag.StringVar(&cfg.Handlers.Audit.AuditURL, "audit-url", "", "the full URL of the remote receiving server where the audit logs are sent")
 	flag.StringVar(&cfg.Handlers.ServerAddr, "a", "localhost:8080", "address of HTTP server")
 	flag.StringVar(&cfg.Handlers.BaseAddr, "b", "http://localhost:8080", "base address of the resulting shortened URL")
 	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
@@ -52,7 +53,13 @@ func GetConfig() Config {
 		cfg.Handlers.SecretKey = secretKey
 	}
 
-	cfg.Handlers.User = models.Users{}
+	if auditFile := os.Getenv("AUDIT_FILE"); auditFile != "" {
+		cfg.Handlers.Audit.AuditFile = auditFile
+	}
+
+	if auditURL := os.Getenv("AUDIT_URL"); auditURL != "" {
+		cfg.Handlers.Audit.AuditURL = auditURL
+	}
 
 	return cfg
 }

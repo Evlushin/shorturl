@@ -45,6 +45,7 @@ type SetShortenerBatchResponse struct {
 type GetShortenerResponse struct {
 	URL       string `json:"url"`
 	IsDeleted bool   `json:"is_deleted"`
+	UserID    string
 }
 
 type SetShortenerRequest struct {
