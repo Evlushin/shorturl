@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/Evlushin/shorturl/internal/config"
+	"github.com/Evlushin/shorturl/internal/observers"
 	"github.com/Evlushin/shorturl/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,14 +19,16 @@ import (
 )
 
 func getHandlersMemory() *handlers {
+	ctx := context.Background()
 	cfg := config.Config{}
 	cfg.Handlers.ServerAddr = "localhost:8080"
 	cfg.Handlers.SecretKey = "123"
 	shortenerService, err := service.NewShortener(cfg)
+	auditManager := observers.InitAuditObservers(ctx, cfg.Handlers)
 	if err != nil {
 		panic(err)
 	}
-	return newHandlers(shortenerService, cfg.Handlers)
+	return newHandlers(shortenerService, cfg.Handlers, auditManager)
 }
 
 func Test_handlers_SetShortener(t *testing.T) {
