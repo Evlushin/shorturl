@@ -125,6 +125,11 @@ func (h *handlers) GetShortenerUrlsAPI(w http.ResponseWriter, r *http.Request) {
 func (h *handlers) GetShortener(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	user, err := auth.GetCtxUserID(r.Context())
+	if err != nil {
+		logger.Log.Error("failed to get shortener", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	resp, err := h.shortener.GetShortener(r.Context(), &models.GetShortenerRequest{
 		ID: id,
