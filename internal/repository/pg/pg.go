@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Evlushin/shorturl/internal/config"
+	"github.com/Evlushin/shorturl/internal/logger"
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/Evlushin/shorturl/internal/repository"
@@ -13,6 +14,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"os"
 	"sync"
 	"time"
 )
@@ -39,7 +41,18 @@ func NewStore(cfg *config.Config) (repository.Repository, error) {
 		conn: conn,
 	}
 
-	err = migrator.ApplyMigrations(conn, "file://./migrations")
+	migrationsPath := "./migrations"
+
+	_, err = os.Stat(migrationsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			logger.Log.Info("directory with migrations does not exist")
+			return store, nil
+		}
+		return nil, fmt.Errorf("error accessing migrations directory: %w", err)
+	}
+
+	err = migrator.ApplyMigrations(conn, fmt.Sprintf("file://%s", migrationsPath))
 	if err != nil {
 		return nil, err
 	}

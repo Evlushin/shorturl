@@ -10,8 +10,9 @@ import (
 )
 
 func GetShortenerValidateRequest(req *models.GetShortenerRequest) error {
-	validPattern := regexp.MustCompile(`^[A-Za-z0-9]{8}$`)
+	validPattern := regexp.MustCompile(`^[A-Za-z0-9]{32}$`)
 	if !validPattern.MatchString(req.ID) {
+		fmt.Println(req.ID)
 		return myerrors.ErrValidateShortenerInvalidRequest
 	}
 
