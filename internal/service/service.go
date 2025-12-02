@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/Evlushin/shorturl/internal/config"
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
@@ -12,7 +14,6 @@ import (
 	"github.com/Evlushin/shorturl/internal/repository/inmemory"
 	"github.com/Evlushin/shorturl/internal/repository/pg"
 	"github.com/google/uuid"
-	"strings"
 )
 
 type Shortener struct {

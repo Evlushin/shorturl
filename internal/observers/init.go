@@ -2,6 +2,7 @@ package observers
 
 import (
 	"context"
+
 	"github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/Evlushin/shorturl/internal/observers/subjects"
 )

@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"github.com/Evlushin/shorturl/internal/logger"
 	"log"
 	"os"
 	"os/signal"
+
+	"github.com/Evlushin/shorturl/internal/logger"
 
 	"github.com/Evlushin/shorturl/internal/config"
 	"github.com/Evlushin/shorturl/internal/handler"

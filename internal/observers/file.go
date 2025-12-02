@@ -3,10 +3,11 @@ package observers
 import (
 	"context"
 	"encoding/json"
-	"github.com/Evlushin/shorturl/internal/models"
 	"log"
 	"os"
 	"sync"
+
+	"github.com/Evlushin/shorturl/internal/models"
 )
 
 type FileAuditLogger struct {

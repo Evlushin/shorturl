@@ -3,17 +3,18 @@ package handler
 import (
 	"context"
 	"errors"
+	"net"
+	"net/http"
+	"net/http/pprof"
+	"sync"
+	"time"
+
 	"github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/Evlushin/shorturl/internal/logger"
 	"github.com/Evlushin/shorturl/internal/middleware"
 	"github.com/Evlushin/shorturl/internal/observers"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
-	"net"
-	"net/http"
-	"net/http/pprof"
-	"sync"
-	"time"
 )
 
 const defaultShutdownCtxTimeout = 10 * time.Second

@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
+	"sync"
+
 	"github.com/Evlushin/shorturl/internal/config"
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/Evlushin/shorturl/internal/repository"
-	"os"
-	"strconv"
-	"sync"
 )
 
 type URLRecord struct {

@@ -2,9 +2,10 @@ package config
 
 import (
 	"flag"
+	"os"
+
 	handlersConfig "github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/google/uuid"
-	"os"
 )
 
 type Config struct {

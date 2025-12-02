@@ -2,6 +2,9 @@ package middleware
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/Evlushin/shorturl/internal/handler/utils/auth"
 	"github.com/Evlushin/shorturl/internal/logger"
@@ -10,8 +13,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 type Claims struct {

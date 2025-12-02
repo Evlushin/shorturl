@@ -5,6 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/Evlushin/shorturl/internal/config"
 	"github.com/Evlushin/shorturl/internal/logger"
 	"github.com/Evlushin/shorturl/internal/models"
@@ -14,9 +18,6 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"os"
-	"sync"
-	"time"
 )
 
 type URLRecord struct {

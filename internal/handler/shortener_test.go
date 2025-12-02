@@ -4,6 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
+	"strings"
+	"testing"
+
 	"github.com/Evlushin/shorturl/internal/config"
 	handlersConfig "github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/Evlushin/shorturl/internal/logger"
@@ -13,13 +21,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"strconv"
-	"strings"
-	"testing"
 )
 
 func getConfig() config.Config {

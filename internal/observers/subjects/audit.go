@@ -2,8 +2,9 @@ package subjects
 
 import (
 	"context"
-	"github.com/Evlushin/shorturl/internal/models"
 	"sync"
+
+	"github.com/Evlushin/shorturl/internal/models"
 )
 
 type AuditObserver interface {

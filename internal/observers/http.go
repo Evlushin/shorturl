@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/Evlushin/shorturl/internal/models"
 	"log"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/Evlushin/shorturl/internal/models"
 )
 
 type HTTPAuditSender struct {

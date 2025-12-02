@@ -6,6 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/Evlushin/shorturl/internal/handler/utils/auth"
 	"github.com/Evlushin/shorturl/internal/logger"
@@ -14,10 +19,6 @@ import (
 	"github.com/Evlushin/shorturl/internal/observers/subjects"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type Shortener interface {

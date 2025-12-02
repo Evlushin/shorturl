@@ -2,11 +2,12 @@ package service
 
 import (
 	"fmt"
-	"github.com/Evlushin/shorturl/internal/models"
-	"github.com/Evlushin/shorturl/internal/myerrors"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/Evlushin/shorturl/internal/models"
+	"github.com/Evlushin/shorturl/internal/myerrors"
 )
 
 func GetShortenerValidateRequest(req *models.GetShortenerRequest) error {

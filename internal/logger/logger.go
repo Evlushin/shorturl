@@ -2,9 +2,10 @@ package logger
 
 import (
 	"fmt"
-	"go.uber.org/zap/zapcore"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap/zapcore"
 
 	"go.uber.org/zap"
 )
