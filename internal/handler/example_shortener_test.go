@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/Evlushin/shorturl/internal/handler/config"
+	"github.com/Evlushin/shorturl/internal/handler/utils/auth"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -95,7 +96,11 @@ func ExampleHandlers_GetShortenerUrlsAPI() {
 	h := newHandlers(nil, config.Config{BaseAddr: "http://localhost:8080"}, nil)
 
 	// Имитируем аутентифицированного пользователя в контексте запроса
-	ctx := context.WithValue(context.Background(), "userID", "f9d82f7d-f8da-4943-9fc9-6b64e3c78fb3")
+	ctx := context.Background()
+	ctx = auth.WithUser(ctx, &models.Users{
+		UserID:     "1",
+		FromCookie: true,
+	})
 	req := httptest.NewRequest(http.MethodGet, "/api/user/urls", nil).WithContext(ctx)
 	w := httptest.NewRecorder()
 	h.GetShortenerUrlsAPI(w, req)
@@ -123,7 +128,11 @@ func ExampleHandlers_DeleteShortenerUrlsAPI() {
 	req := httptest.NewRequest(http.MethodDelete, "/api/user/urls", bytes.NewBuffer(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 	// Имитируем аутентифицированного пользователя
-	ctx := context.WithValue(context.Background(), "userID", "f9d82f7d-f8da-4943-9fc9-6b64e3c78fb3")
+	ctx := context.Background()
+	ctx = auth.WithUser(ctx, &models.Users{
+		UserID:     "1",
+		FromCookie: true,
+	})
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
