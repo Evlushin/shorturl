@@ -72,7 +72,7 @@ func Serve(ctx context.Context, cfg config.Config, shortener Shortener) {
 	wg.Wait()
 }
 
-func newRouter(h *handlers) *chi.Mux {
+func newRouter(h *Handlers) *chi.Mux {
 	r := chi.NewRouter()
 
 	// pprof

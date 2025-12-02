@@ -26,11 +26,12 @@ import (
 func getConfig() config.Config {
 	return config.Config{
 		Handlers: handlersConfig.Config{
-			ServerAddr: "localhost:8080",
-			BaseAddr:   "http://localhost:8080",
-			SecretKey:  "test-secret",
+			ServerAddr: "",
+			BaseAddr:   "",
+			SecretKey:  "",
 			Audit: handlersConfig.TAudit{
-				AuditFile: "audit.log",
+				//AuditFile: "audit.log",
+				AuditFile: "",
 			},
 		},
 		LogLevel:      "info",
@@ -183,7 +184,7 @@ func BenchmarkGetShortenerURLs(b *testing.B) {
 	}
 }
 
-func getHandlersMemory() *handlers {
+func getHandlersMemory() *Handlers {
 	ctx := context.Background()
 	cfg := getConfig()
 	cfg.Handlers.ServerAddr = "localhost:8080"
