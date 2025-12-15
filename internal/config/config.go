@@ -1,66 +1,24 @@
 package config
 
 import (
-	"flag"
-	"os"
+	"github.com/ilyakaznacheev/cleanenv"
 
 	handlersConfig "github.com/Evlushin/shorturl/internal/handler/config"
-	"github.com/google/uuid"
 )
 
 type Config struct {
 	Handlers      handlersConfig.Config
-	LogLevel      string
-	FileStorePath string
-	DatabaseDsn   string
+	LogLevel      string `env:"LOG_LEVEL" flag:"l" default:"info" help:"log level"`
+	FileStorePath string `env:"FILE_STORAGE_PATH" flag:"f" default:"" help:"address storage"`
+	DatabaseDsn   string `env:"DATABASE_DSN" flag:"d" default:"" help:"connection string"`
 }
 
-func GetConfig() Config {
-	cfg := Config{}
+func GetConfig() (Config, error) {
+	var cfg Config
 
-	flag.StringVar(&cfg.Handlers.Audit.AuditFile, "audit-file", "audit.txt", "path to the destination file where audit logs are saved")
-	flag.StringVar(&cfg.Handlers.Audit.AuditURL, "audit-url", "", "the full URL of the remote receiving server where the audit logs are sent")
-	flag.StringVar(&cfg.Handlers.ServerAddr, "a", "localhost:8080", "address of HTTP server")
-	flag.StringVar(&cfg.Handlers.BaseAddr, "b", "http://localhost:8080", "base address of the resulting shortened URL")
-	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
-	//flag.StringVar(&cfg.FileStorePath, "f", "storage.txt", "address storage")
-	//flag.StringVar(&cfg.DatabaseDsn, "d", "host=127.127.126.41 port=5432 dbname=shorturl user=shorturl password=shorturl connect_timeout=10 sslmode=prefer", "connection string")
-	flag.StringVar(&cfg.FileStorePath, "f", "", "address storage")
-	flag.StringVar(&cfg.DatabaseDsn, "d", "", "connection string")
-	flag.StringVar(&cfg.Handlers.SecretKey, "s", uuid.NewString(), "secret key")
-	flag.Parse()
-
-	if serverAddr := os.Getenv("SERVER_ADDRESS"); serverAddr != "" {
-		cfg.Handlers.ServerAddr = serverAddr
+	if err := cleanenv.ReadConfig(".env", &cfg); err != nil {
+		return Config{}, err
 	}
 
-	if baseAddr := os.Getenv("BASE_URL"); baseAddr != "" {
-		cfg.Handlers.BaseAddr = baseAddr
-	}
-
-	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
-		cfg.LogLevel = envLogLevel
-	}
-
-	if fileStorePath := os.Getenv("FILE_STORAGE_PATH"); fileStorePath != "" {
-		cfg.FileStorePath = fileStorePath
-	}
-
-	if databaseDsn := os.Getenv("DATABASE_DSN"); databaseDsn != "" {
-		cfg.DatabaseDsn = databaseDsn
-	}
-
-	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
-		cfg.Handlers.SecretKey = secretKey
-	}
-
-	if auditFile := os.Getenv("AUDIT_FILE"); auditFile != "" {
-		cfg.Handlers.Audit.AuditFile = auditFile
-	}
-
-	if auditURL := os.Getenv("AUDIT_URL"); auditURL != "" {
-		cfg.Handlers.Audit.AuditURL = auditURL
-	}
-
-	return cfg
+	return cfg, nil
 }
