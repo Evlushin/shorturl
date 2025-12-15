@@ -118,7 +118,7 @@ func generateResetMethod(typeName string, structType *ast.StructType, fset *toke
 	lines = append(lines, "    }")
 
 	for _, field := range structType.Fields.List {
-		if field.Names == nil || len(field.Names) == 0 {
+		if len(field.Names) == 0 {
 			continue // пропускаем анонимные поля
 		}
 
