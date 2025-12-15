@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"github.com/Evlushin/shorturl/internal/utils"
 	"log"
 	"os"
 	"os/signal"
@@ -13,7 +15,16 @@ import (
 	"github.com/Evlushin/shorturl/internal/service"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func main() {
+	// Выводим информацию о сборке при старте
+	printBuildInfo()
+
 	ctx := context.Background()
 	if err := run(ctx); err != nil {
 		log.Fatal(err)
@@ -38,4 +49,11 @@ func run(ctx context.Context) error {
 
 	handler.Serve(ctx, cfg.Handlers, shortenerService)
 	return nil
+}
+
+// printBuildInfo выводит информацию о сборке
+func printBuildInfo() {
+	fmt.Printf("Build version: %s\n", utils.FormatValue(buildVersion))
+	fmt.Printf("Build date: %s\n", utils.FormatValue(buildDate))
+	fmt.Printf("Build commit: %s\n", utils.FormatValue(buildCommit))
 }
