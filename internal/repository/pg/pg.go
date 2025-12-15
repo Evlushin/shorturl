@@ -26,6 +26,7 @@ type URLRecord struct {
 	OriginalURL string `json:"original_url"`
 }
 
+// generate:reset
 type Store struct {
 	cfg  *config.Config
 	conn *sql.DB

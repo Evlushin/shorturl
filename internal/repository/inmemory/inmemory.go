@@ -11,6 +11,7 @@ import (
 	"github.com/Evlushin/shorturl/internal/repository"
 )
 
+// generate:reset
 type Store struct {
 	mux *sync.RWMutex
 	s   map[string]map[string]models.GetShortenerResponse

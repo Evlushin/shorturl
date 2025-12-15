@@ -22,6 +22,7 @@ type URLRecord struct {
 	IsDeleted   bool   `json:"is_deleted"`
 }
 
+// generate:reset
 type Store struct {
 	mux *sync.RWMutex
 	s   map[string]map[string]models.GetShortenerResponse
