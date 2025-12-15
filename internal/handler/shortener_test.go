@@ -184,7 +184,7 @@ func BenchmarkGetShortenerURLs(b *testing.B) {
 	}
 }
 
-func getHandlersMemory() *Handlers {
+func getHandlersMemory() (*Handlers, error) {
 	ctx := context.Background()
 	cfg := getConfig()
 	cfg.Handlers.ServerAddr = "localhost:8080"
@@ -192,13 +192,14 @@ func getHandlersMemory() *Handlers {
 	shortenerService, err := service.NewShortener(cfg)
 	auditManager := observers.InitAuditObservers(ctx, cfg.Handlers)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to fetch the shortener result from the store: %w", err)
 	}
-	return newHandlers(shortenerService, cfg.Handlers, auditManager)
+	return newHandlers(shortenerService, cfg.Handlers, auditManager), nil
 }
 
 func Test_handlers_SetShortener(t *testing.T) {
-	h := getHandlersMemory()
+	h, err := getHandlersMemory()
+	require.NoError(t, err)
 
 	ts := httptest.NewServer(newRouter(h))
 	defer ts.Close()
@@ -243,7 +244,9 @@ func Test_handlers_SetShortener(t *testing.T) {
 }
 
 func Test_handlers_GetShortener(t *testing.T) {
-	h := getHandlersMemory()
+	h, err := getHandlersMemory()
+	require.NoError(t, err)
+
 	ts := httptest.NewServer(newRouter(h))
 	defer ts.Close()
 
@@ -304,7 +307,8 @@ func Test_handlers_GetShortener(t *testing.T) {
 }
 
 func Test_handlers_SetShortenerAPI(t *testing.T) {
-	h := getHandlersMemory()
+	h, err := getHandlersMemory()
+	require.NoError(t, err)
 
 	ts := httptest.NewServer(newRouter(h))
 	defer ts.Close()
@@ -356,7 +360,8 @@ func Test_handlers_SetShortenerAPI(t *testing.T) {
 }
 
 func Test_handlers_SetShortenerBatchAPI(t *testing.T) {
-	h := getHandlersMemory()
+	h, err := getHandlersMemory()
+	require.NoError(t, err)
 
 	ts := httptest.NewServer(newRouter(h))
 	defer ts.Close()
@@ -414,7 +419,9 @@ func Test_handlers_SetShortenerBatchAPI(t *testing.T) {
 }
 
 func Test_handlers_GetShortenerUrlsAPI(t *testing.T) {
-	h := getHandlersMemory()
+	h, err := getHandlersMemory()
+	require.NoError(t, err)
+
 	ts := httptest.NewServer(newRouter(h))
 	defer ts.Close()
 
@@ -487,7 +494,9 @@ func Test_handlers_GetShortenerUrlsAPI(t *testing.T) {
 }
 
 func Test_handlers_DeleteShortenerUrlsAPI(t *testing.T) {
-	h := getHandlersMemory()
+	h, err := getHandlersMemory()
+	require.NoError(t, err)
+
 	ts := httptest.NewServer(newRouter(h))
 	defer ts.Close()
 
