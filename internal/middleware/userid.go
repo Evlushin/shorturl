@@ -2,15 +2,17 @@ package middleware
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/Evlushin/shorturl/internal/handler/config"
+	"github.com/Evlushin/shorturl/internal/handler/utils/auth"
 	"github.com/Evlushin/shorturl/internal/logger"
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 type Claims struct {
@@ -34,9 +36,9 @@ func UserIDMiddleware(cfg *config.Config) func(next http.Handler) http.Handler {
 					return
 				}
 			}
-			cfg.User = *user
+			ctx := auth.WithUser(r.Context(), user)
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

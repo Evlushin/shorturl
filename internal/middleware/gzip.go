@@ -2,11 +2,12 @@ package middleware
 
 import (
 	"compress/gzip"
-	"github.com/Evlushin/shorturl/internal/logger"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/Evlushin/shorturl/internal/logger"
+	"go.uber.org/zap"
 )
 
 type compressWriter struct {

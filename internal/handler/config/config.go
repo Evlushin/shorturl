@@ -1,10 +1,13 @@
 package config
 
-import "github.com/Evlushin/shorturl/internal/models"
+type TAudit struct {
+	AuditFile string
+	AuditURL  string
+}
 
 type Config struct {
 	ServerAddr string
 	BaseAddr   string
 	SecretKey  string
-	User       models.Users
+	Audit      TAudit
 }

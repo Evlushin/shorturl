@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/Evlushin/shorturl/internal/config"
 	"github.com/Evlushin/shorturl/internal/models"
 	"github.com/Evlushin/shorturl/internal/myerrors"
@@ -12,6 +13,7 @@ import (
 	"github.com/Evlushin/shorturl/internal/repository/file"
 	"github.com/Evlushin/shorturl/internal/repository/inmemory"
 	"github.com/Evlushin/shorturl/internal/repository/pg"
+	"github.com/google/uuid"
 )
 
 type Shortener struct {
@@ -96,38 +98,18 @@ func (f *Shortener) GetShortenerUrls(ctx context.Context, userID string) ([]mode
 	return nil, myerrors.ErrGetShortenerNotFound
 }
 
-func (f *Shortener) generateRandomString(ctx context.Context, length uint8, limit uint16) (string, error) {
-	if limit <= 0 {
-		return "", myerrors.ErrEndRandomStrings
-	}
+func (f *Shortener) generateRandomString() string {
+	u := uuid.New()
+	s := u.String()
+	var builder strings.Builder
+	builder.Grow(len(s) - 4)
 
-	const (
-		charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-	)
-
-	b := make([]byte, length)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-
-	result := make([]byte, length)
-	for i := uint8(0); i < length; i++ {
-		result[i] = charset[int(b[i])%len(charset)]
-	}
-
-	id := string(result)
-	_, err := f.store.GetShortener(ctx, &models.GetShortenerRequest{
-		ID: id,
-	})
-	if err != nil {
-		if errors.Is(err, myerrors.ErrGetShortenerNotFound) {
-			return id, nil
+	for i := 0; i < len(s); i++ {
+		if s[i] != '-' {
+			builder.WriteByte(s[i])
 		}
-
-		return "", err
 	}
-
-	return f.generateRandomString(ctx, length, limit-1)
+	return builder.String()
 }
 
 func (f *Shortener) SetShortener(ctx context.Context, req *models.SetShortenerRequest) (*models.SetShortenerResponse, error) {
@@ -137,10 +119,7 @@ func (f *Shortener) SetShortener(ctx context.Context, req *models.SetShortenerRe
 		return nil, err
 	}
 
-	req.ID, err = f.generateRandomString(ctx, 8, 10000)
-	if err != nil {
-		return nil, err
-	}
+	req.ID = f.generateRandomString()
 
 	err = f.store.SetShortener(ctx, req)
 	if err != nil && !errors.Is(err, myerrors.ErrConflictURL) {
@@ -159,11 +138,7 @@ func (f *Shortener) SetShortenerBatch(ctx context.Context, req []models.RequestB
 
 	var r []models.SetShortenerBatchRequest
 	for _, item := range req {
-		id, err := f.generateRandomString(ctx, 8, 100)
-
-		if err != nil {
-			return nil, err
-		}
+		id := f.generateRandomString()
 
 		r = append(r, models.SetShortenerBatchRequest{
 			CorrelationID: item.CorrelationID,

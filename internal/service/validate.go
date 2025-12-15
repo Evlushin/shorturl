@@ -2,16 +2,18 @@ package service
 
 import (
 	"fmt"
-	"github.com/Evlushin/shorturl/internal/models"
-	"github.com/Evlushin/shorturl/internal/myerrors"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/Evlushin/shorturl/internal/models"
+	"github.com/Evlushin/shorturl/internal/myerrors"
 )
 
 func GetShortenerValidateRequest(req *models.GetShortenerRequest) error {
-	validPattern := regexp.MustCompile(`^[A-Za-z0-9]{8}$`)
+	validPattern := regexp.MustCompile(`^[A-Za-z0-9]{32}$`)
 	if !validPattern.MatchString(req.ID) {
+		fmt.Println(req.ID)
 		return myerrors.ErrValidateShortenerInvalidRequest
 	}
 

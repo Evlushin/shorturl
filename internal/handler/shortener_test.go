@@ -1,12 +1,9 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Evlushin/shorturl/internal/config"
-	"github.com/Evlushin/shorturl/internal/service"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,17 +11,190 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/Evlushin/shorturl/internal/config"
+	handlersConfig "github.com/Evlushin/shorturl/internal/handler/config"
+	"github.com/Evlushin/shorturl/internal/logger"
+	"github.com/Evlushin/shorturl/internal/models"
+	"github.com/Evlushin/shorturl/internal/observers"
+	"github.com/Evlushin/shorturl/internal/service"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func getHandlersMemory() *handlers {
-	cfg := config.Config{}
+func getConfig() config.Config {
+	return config.Config{
+		Handlers: handlersConfig.Config{
+			ServerAddr: "",
+			BaseAddr:   "",
+			SecretKey:  "",
+			Audit: handlersConfig.TAudit{
+				//AuditFile: "audit.log",
+				AuditFile: "",
+			},
+		},
+		LogLevel:      "info",
+		FileStorePath: "",
+		//DatabaseDsn:   "host=127.127.126.41 port=5432 dbname=shorturl user=shorturl password=shorturl connect_timeout=10 sslmode=prefer",
+		DatabaseDsn: "",
+	}
+}
+
+func BenchmarkSetShortener(b *testing.B) {
+	ctx := context.Background()
+	cfg := getConfig()
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
+		b.Errorf("logger: %v", err)
+	}
+	s, err := service.NewShortener(cfg)
+	if err != nil {
+		b.Errorf("Failed to create service: %v", err)
+	}
+	defer s.Close()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = s.SetShortener(ctx, &models.SetShortenerRequest{
+			UserID: uuid.New().String(),
+			URL:    "https://example.com",
+		})
+		if err != nil {
+			b.Errorf("SetShortener failed on iteration %d: %v", i, err)
+		}
+
+	}
+}
+
+func BenchmarkSetShortenerBatch(b *testing.B) {
+	ctx := context.Background()
+	cfg := getConfig()
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
+		b.Errorf("logger: %v", err)
+	}
+	s, err := service.NewShortener(cfg)
+	if err != nil {
+		b.Errorf("Failed to create service: %v", err)
+	}
+	defer s.Close()
+
+	r := []models.RequestBatch{
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = s.SetShortenerBatch(ctx, r, strconv.Itoa(i))
+		if err != nil {
+			b.Errorf("SetShortenerBatch failed on iteration %d: %v", i, err)
+		}
+	}
+}
+
+func BenchmarkGetShortener(b *testing.B) {
+	ctx := context.Background()
+	cfg := getConfig()
+	s, err := service.NewShortener(cfg)
+	if err != nil {
+		b.Errorf("Failed to create service: %v", err)
+	}
+	defer s.Close()
+
+	id, err := s.SetShortener(ctx, &models.SetShortenerRequest{
+		UserID: "1",
+		URL:    "https://example.com",
+	})
+	if err != nil {
+		b.Errorf("SetShortener failed on iteration: %v", err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = s.GetShortener(ctx, &models.GetShortenerRequest{
+			ID: id.ID,
+		})
+		if err != nil {
+			b.Errorf("GetShortener failed on iteration %d: %v", i, err)
+		}
+	}
+}
+
+func BenchmarkGetShortenerURLs(b *testing.B) {
+	ctx := context.Background()
+	cfg := getConfig()
+	s, err := service.NewShortener(cfg)
+	if err != nil {
+		b.Errorf("Failed to create service: %v", err)
+	}
+	defer s.Close()
+
+	r := []models.RequestBatch{
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+		{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   "https://example" + uuid.New().String() + ".com",
+		},
+	}
+
+	_, err = s.SetShortenerBatch(ctx, r, "1")
+	if err != nil {
+		b.Errorf("SetShortenerBatch failed on iteration: %v", err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = s.GetShortenerUrls(ctx, "1")
+		if err != nil {
+			b.Errorf("GetShortenerUrls failed on iteration %d: %v", i, err)
+		}
+	}
+}
+
+func getHandlersMemory() *Handlers {
+	ctx := context.Background()
+	cfg := getConfig()
 	cfg.Handlers.ServerAddr = "localhost:8080"
 	cfg.Handlers.SecretKey = "123"
 	shortenerService, err := service.NewShortener(cfg)
+	auditManager := observers.InitAuditObservers(ctx, cfg.Handlers)
 	if err != nil {
 		panic(err)
 	}
-	return newHandlers(shortenerService, cfg.Handlers)
+	return newHandlers(shortenerService, cfg.Handlers, auditManager)
 }
 
 func Test_handlers_SetShortener(t *testing.T) {
