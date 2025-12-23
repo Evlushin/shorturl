@@ -26,7 +26,7 @@ var (
 func main() {
 	ctx := context.Background()
 	if err := run(ctx); err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to run application: %v", err)
 	}
 }
 
