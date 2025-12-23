@@ -43,7 +43,7 @@ func Serve(ctx context.Context, cfg config.Config, shortener Shortener) {
 	go func() {
 		defer wg.Done()
 		logger.Log.Info("starting server", zap.String("addr", cfg.ServerAddr))
-		if cfg.EnableHttps {
+		if cfg.EnableHTTPS {
 			// Проверка наличия сертификатов
 			if cfg.TLSCertFile == "" || cfg.TLSKeyFile == "" {
 				logger.Log.Error("TLS enabled but certificate or key file not provided")

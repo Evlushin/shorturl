@@ -28,7 +28,7 @@ func GetConfig() (Config, error) {
 	flag.StringVar(&cfg.FileStorePath, "f", "", "address storage")
 	flag.StringVar(&cfg.DatabaseDsn, "d", "", "connection string")
 	flag.StringVar(&cfg.Handlers.SecretKey, "k", uuid.NewString(), "secret key")
-	flag.BoolVar(&cfg.Handlers.EnableHttps, "s", false, "enable https")
+	flag.BoolVar(&cfg.Handlers.EnableHTTPS, "s", false, "enable https")
 	flag.Parse()
 	if err := cleanenv.ReadConfig(".env", &cfg); err != nil {
 		return Config{}, err

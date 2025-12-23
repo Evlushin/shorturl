@@ -11,7 +11,7 @@ type Config struct {
 	ServerAddr   string `env:"SERVER_ADDRESS" env-default:"localhost:8080" env-description:"address of HTTP server"`
 	BaseAddr     string `env:"BASE_URL" env-default:"http://localhost:8080" env-description:"base address of the resulting shortened URL"`
 	SecretKey    string `env:"SECRET_KEY" env-default:"{{uuid}}" env-description:"secret key"`
-	EnableHttps  bool   `env:"ENABLE_HTTPS" env-description:"enable https"`
+	EnableHTTPS  bool   `env:"ENABLE_HTTPS" env-description:"enable https"`
 	Audit        TAudit
 	ReadTimeout  time.Duration `env:"READ_TIMEOUT" env-default:"5s" env-description:"HTTP server read timeout"`
 	WriteTimeout time.Duration `env:"WRITE_TIMEOUT" env-default:"10s" env-description:"HTTP server write timeout"`
