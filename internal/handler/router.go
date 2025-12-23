@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"sync"
 	"time"
 
@@ -42,15 +43,38 @@ func Serve(ctx context.Context, cfg config.Config, shortener Shortener) {
 	go func() {
 		defer wg.Done()
 		logger.Log.Info("starting server", zap.String("addr", cfg.ServerAddr))
-		lis, err := net.Listen("tcp", cfg.ServerAddr)
-		if err != nil {
-			logger.Log.Error("failed to listen", zap.Error(err))
-			cancel()
-			return
-		}
-		if err := httpServer.Serve(lis); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Log.Error("error serving", zap.Error(err))
-			cancel()
+		if cfg.EnableHttps {
+			// Проверка наличия сертификатов
+			if cfg.TLSCertFile == "" || cfg.TLSKeyFile == "" {
+				logger.Log.Error("TLS enabled but certificate or key file not provided")
+				cancel()
+				return
+			}
+
+			if !certFilesExist(cfg.TLSCertFile, cfg.TLSKeyFile) {
+				logger.Log.Error("no certificates")
+				cancel()
+				return
+			}
+
+			// Запуск HTTPS-сервера
+			err := httpServer.ListenAndServeTLS(cfg.TLSCertFile, cfg.TLSKeyFile)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Log.Error("error serving HTTPS", zap.Error(err))
+				cancel()
+			}
+		} else {
+
+			lis, err := net.Listen("tcp", cfg.ServerAddr)
+			if err != nil {
+				logger.Log.Error("failed to listen", zap.Error(err))
+				cancel()
+				return
+			}
+			if err := httpServer.Serve(lis); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Log.Error("error serving", zap.Error(err))
+				cancel()
+			}
 		}
 	}()
 
@@ -63,16 +87,24 @@ func Serve(ctx context.Context, cfg config.Config, shortener Shortener) {
 		shutdownCtx, shutdownCancel := context.WithTimeout(ctx, defaultShutdownCtxTimeout)
 		defer shutdownCancel()
 
+		// Завершение http сервера
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
 			logger.Log.Error("error shutting down http server", zap.Error(err))
 		}
 
+		// Завершение auditManager
 		auditManager.Stop()
 
 		logger.Log.Info("server shutdown complete")
 	}()
 
 	wg.Wait()
+}
+
+func certFilesExist(certFile, keyFile string) bool {
+	_, errCert := os.Stat(certFile)
+	_, errKey := os.Stat(keyFile)
+	return errCert == nil && errKey == nil
 }
 
 func newRouter(h *Handlers) *chi.Mux {

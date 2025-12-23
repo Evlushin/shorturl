@@ -27,9 +27,9 @@ func GetConfig() (Config, error) {
 	//flag.StringVar(&cfg.DatabaseDsn, "d", "host=127.127.126.41 port=5432 dbname=shorturl user=shorturl password=shorturl connect_timeout=10 sslmode=prefer", "connection string")
 	flag.StringVar(&cfg.FileStorePath, "f", "", "address storage")
 	flag.StringVar(&cfg.DatabaseDsn, "d", "", "connection string")
-	flag.StringVar(&cfg.Handlers.SecretKey, "s", uuid.NewString(), "secret key")
+	flag.StringVar(&cfg.Handlers.SecretKey, "k", uuid.NewString(), "secret key")
+	flag.BoolVar(&cfg.Handlers.EnableHttps, "s", true, "enable https")
 	flag.Parse()
-
 	if err := cleanenv.ReadConfig(".env", &cfg); err != nil {
 		return Config{}, err
 	}
