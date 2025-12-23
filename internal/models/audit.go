@@ -7,6 +7,7 @@ const (
 	RAFollow  TAction = "follow"
 )
 
+// generate:reset
 type AuditEvent struct {
 	TS      int64   `json:"ts"`
 	Action  TAction `json:"action"`

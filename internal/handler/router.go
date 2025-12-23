@@ -28,8 +28,11 @@ func Serve(ctx context.Context, cfg config.Config, shortener Shortener) {
 	router := newRouter(h)
 
 	httpServer := &http.Server{
-		Addr:    cfg.ServerAddr,
-		Handler: router,
+		Addr:         cfg.ServerAddr,
+		Handler:      router,
+		ReadTimeout:  cfg.ReadTimeout,  // макс. время на чтение запроса
+		WriteTimeout: cfg.WriteTimeout, // макс. время на запись ответа
+		IdleTimeout:  cfg.IdleTimeout,  // макс. время бездействия соединения
 	}
 
 	var wg sync.WaitGroup
