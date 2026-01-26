@@ -7,6 +7,7 @@ import (
 )
 
 type Repository interface {
+	GetStats(ctx context.Context) (*models.ResponseStats, error)
 	GetShortener(ctx context.Context, req *models.GetShortenerRequest) (*models.GetShortenerResponse, error)
 	SetShortener(ctx context.Context, req *models.SetShortenerRequest) error
 	SetShortenerBatch(ctx context.Context, req []models.SetShortenerBatchRequest) error

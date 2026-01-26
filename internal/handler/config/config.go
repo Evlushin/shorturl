@@ -8,14 +8,15 @@ type TAudit struct {
 }
 
 type Config struct {
-	ServerAddr   string `env:"SERVER_ADDRESS" env-default:"localhost:8080" env-description:"address of HTTP server"`
-	BaseAddr     string `env:"BASE_URL" env-default:"http://localhost:8080" env-description:"base address of the resulting shortened URL"`
-	SecretKey    string `env:"SECRET_KEY" env-default:"{{uuid}}" env-description:"secret key"`
-	EnableHTTPS  bool   `env:"ENABLE_HTTPS" env-description:"enable https"`
-	Audit        TAudit
-	ReadTimeout  time.Duration `env:"READ_TIMEOUT" env-default:"5s" env-description:"HTTP server read timeout"`
-	WriteTimeout time.Duration `env:"WRITE_TIMEOUT" env-default:"10s" env-description:"HTTP server write timeout"`
-	IdleTimeout  time.Duration `env:"IDLE_TIMEOUT" env-default:"120s" env-description:"HTTP server idle timeout"`
-	TLSCertFile  string        `env:"TLS_CERT_FILE" env-default:"./cert/cert.pem" env-description:"path to the TLS certificate"`
-	TLSKeyFile   string        `env:"TLS_KEY_FILE" env-default:"./cert/key.pem" env-description:"path to private key"`
+	ServerAddr    string `env:"SERVER_ADDRESS" env-default:"localhost:8080" env-description:"address of HTTP server"`
+	BaseAddr      string `env:"BASE_URL" env-default:"http://localhost:8080" env-description:"base address of the resulting shortened URL"`
+	TrustedSubnet string `json:"trusted_subnet" env:"TRUSTED_SUBNET" env-description:"trusted subnet"`
+	SecretKey     string `env:"SECRET_KEY" env-default:"{{uuid}}" env-description:"secret key"`
+	EnableHTTPS   bool   `env:"ENABLE_HTTPS" env-description:"enable https"`
+	Audit         TAudit
+	ReadTimeout   time.Duration `env:"READ_TIMEOUT" env-default:"5s" env-description:"HTTP server read timeout"`
+	WriteTimeout  time.Duration `env:"WRITE_TIMEOUT" env-default:"10s" env-description:"HTTP server write timeout"`
+	IdleTimeout   time.Duration `env:"IDLE_TIMEOUT" env-default:"120s" env-description:"HTTP server idle timeout"`
+	TLSCertFile   string        `env:"TLS_CERT_FILE" env-default:"./cert/cert.pem" env-description:"path to the TLS certificate"`
+	TLSKeyFile    string        `env:"TLS_KEY_FILE" env-default:"./cert/key.pem" env-description:"path to private key"`
 }

@@ -118,6 +118,7 @@ func newRouter(h *Handlers) *chi.Mux {
 		r.Handle("/cmdline", http.HandlerFunc(pprof.Cmdline))
 		r.Handle("/heap", pprof.Handler("heap"))
 	})
+
 	r.Group(func(r chi.Router) {
 		r.Use(logger.RequestLogger)
 		r.Use(middleware.GzipMiddleware)
@@ -137,6 +138,10 @@ func newRouter(h *Handlers) *chi.Mux {
 					r.Get("/", h.GetShortenerUrlsAPI)
 					r.Delete("/", h.DeleteShortenerUrlsAPI)
 				})
+			})
+			r.Route("/internal", func(r chi.Router) {
+				r.Use(middleware.TrustedSubnetMiddleware(h.cfg.TrustedSubnet))
+				r.Get("/stats", h.GetStats)
 			})
 		})
 	})

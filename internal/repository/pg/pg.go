@@ -220,6 +220,21 @@ func (st *Store) GetShortener(ctx context.Context, req *models.GetShortenerReque
 	return &res, nil
 }
 
+func (st *Store) GetStats(ctx context.Context) (*models.ResponseStats, error) {
+	var res models.ResponseStats
+	err := st.conn.QueryRowContext(ctx, `SELECT 
+    COUNT(DISTINCT URL) AS urls,
+    COUNT(DISTINCT USER_ID) AS users
+	FROM shorteners
+	WHERE IS_DELETED = FALSE;`).Scan(&res.URLs, &res.Users)
+
+	if err != nil {
+		return nil, fmt.Errorf("get stats request error: %w", err)
+	}
+
+	return &res, nil
+}
+
 func (st *Store) GetShortenerUrls(ctx context.Context, userID string) ([]models.GetShortenerUrls, error) {
 	rows, err := st.conn.QueryContext(ctx, `SELECT ID, URL FROM shorteners WHERE USER_ID = $1 AND IS_DELETED = FALSE`, userID)
 

@@ -25,6 +25,11 @@ type ResponseUrls struct {
 	OriginalURL string `json:"original_url"`
 }
 
+type ResponseStats struct {
+	URLs  uint32 `json:"urls"`
+	Users uint32 `json:"users"`
+}
+
 type ErrorJSONResponse struct {
 	Message string `json:"message"`
 }
