@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/ilyakaznacheev/cleanenv"
 
@@ -13,6 +14,7 @@ type Config struct {
 	LogLevel      string `env:"LOG_LEVEL" env-default:"info" env-description:"log level"`
 	FileStorePath string `env:"FILE_STORAGE_PATH" env-default:"" env-description:"address storage"`
 	DatabaseDsn   string `env:"DATABASE_DSN" env-default:"" env-description:"connection string"`
+	ConfigFile    string `env:"CONFIG" env-description:"config file"`
 }
 
 func GetConfig() (Config, error) {
@@ -27,11 +29,12 @@ func GetConfig() (Config, error) {
 	//flag.StringVar(&cfg.DatabaseDsn, "d", "host=127.127.126.41 port=5432 dbname=shorturl user=shorturl password=shorturl connect_timeout=10 sslmode=prefer", "connection string")
 	flag.StringVar(&cfg.FileStorePath, "f", "", "address storage")
 	flag.StringVar(&cfg.DatabaseDsn, "d", "", "connection string")
-	flag.StringVar(&cfg.Handlers.SecretKey, "s", uuid.NewString(), "secret key")
+	flag.StringVar(&cfg.Handlers.SecretKey, "k", uuid.NewString(), "secret key")
+	flag.BoolVar(&cfg.Handlers.EnableHTTPS, "s", false, "enable https")
+	flag.StringVar(&cfg.ConfigFile, "c", ".env", "config file")
 	flag.Parse()
-
-	if err := cleanenv.ReadConfig(".env", &cfg); err != nil {
-		return Config{}, err
+	if err := cleanenv.ReadConfig(cfg.ConfigFile, &cfg); err != nil {
+		return Config{}, fmt.Errorf("read config: %w", err)
 	}
 
 	return cfg, nil

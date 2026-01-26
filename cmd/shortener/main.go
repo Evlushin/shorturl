@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/Evlushin/shorturl/internal/logger"
 
@@ -25,12 +26,12 @@ var (
 func main() {
 	ctx := context.Background()
 	if err := run(ctx); err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to run application: %v", err)
 	}
 }
 
 func run(ctx context.Context) error {
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer cancel()
 
 	printBuildInfo()
