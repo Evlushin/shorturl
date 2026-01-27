@@ -62,9 +62,9 @@ func (s *GRPCServer) ShortenURL(ctx context.Context, req *pb.URLShortenRequest) 
 
 	fullURL := fmt.Sprintf("%s/%s", s.cfg.BaseAddr, resp.ID)
 
-	return pb.URLShortenResponse_builder{
+	return &pb.URLShortenResponse{
 		Result: proto.String(fullURL),
-	}.Build(), nil
+	}, nil
 }
 
 func (s *GRPCServer) ExpandURL(ctx context.Context, req *pb.URLExpandRequest) (*pb.URLExpandResponse, error) {
@@ -86,10 +86,10 @@ func (s *GRPCServer) ExpandURL(ctx context.Context, req *pb.URLExpandRequest) (*
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	res := pb.URLExpandResponse_builder{
+	res := pb.URLExpandResponse{
 		Result: proto.String(resp.URL),
-	}.Build()
-	return res, nil
+	}
+	return &res, nil
 }
 
 func (s *GRPCServer) ListUserURLs(ctx context.Context, _ *emptypb.Empty) (*pb.UserURLsResponse, error) {
@@ -116,13 +116,13 @@ func (s *GRPCServer) ListUserURLs(ctx context.Context, _ *emptypb.Empty) (*pb.Us
 	resp := make([]*pb.URLData, 0, len(shorteners))
 	for _, shortener := range shorteners {
 		fullURL := fmt.Sprintf("%s/%s", s.cfg.BaseAddr, shortener.ID)
-		resp = append(resp, pb.URLData_builder{
+		resp = append(resp, &pb.URLData{
 			ShortUrl:    proto.String(fullURL),
 			OriginalUrl: proto.String(shortener.URL),
-		}.Build())
+		})
 	}
 
-	return pb.UserURLsResponse_builder{
+	return &pb.UserURLsResponse{
 		Url: resp,
-	}.Build(), nil
+	}, nil
 }
