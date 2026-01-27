@@ -11,6 +11,7 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
+	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -22,12 +23,10 @@ const (
 )
 
 type URLShortenRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Url         *string                `protobuf:"bytes,1,opt,name=url"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           *string                `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *URLShortenRequest) Reset() {
@@ -55,57 +54,23 @@ func (x *URLShortenRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+// Deprecated: Use URLShortenRequest.ProtoReflect.Descriptor instead.
+func (*URLShortenRequest) Descriptor() ([]byte, []int) {
+	return file_proto_shortener_proto_rawDescGZIP(), []int{0}
+}
+
 func (x *URLShortenRequest) GetUrl() string {
-	if x != nil {
-		if x.xxx_hidden_Url != nil {
-			return *x.xxx_hidden_Url
-		}
-		return ""
+	if x != nil && x.Url != nil {
+		return *x.Url
 	}
 	return ""
 }
 
-func (x *URLShortenRequest) SetUrl(v string) {
-	x.xxx_hidden_Url = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *URLShortenRequest) HasUrl() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *URLShortenRequest) ClearUrl() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Url = nil
-}
-
-type URLShortenRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Url *string
-}
-
-func (b0 URLShortenRequest_builder) Build() *URLShortenRequest {
-	m0 := &URLShortenRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Url != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Url = b.Url
-	}
-	return m0
-}
-
 type URLShortenResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Result      *string                `protobuf:"bytes,1,opt,name=result"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *string                `protobuf:"bytes,1,opt,name=result" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *URLShortenResponse) Reset() {
@@ -133,57 +98,23 @@ func (x *URLShortenResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+// Deprecated: Use URLShortenResponse.ProtoReflect.Descriptor instead.
+func (*URLShortenResponse) Descriptor() ([]byte, []int) {
+	return file_proto_shortener_proto_rawDescGZIP(), []int{1}
+}
+
 func (x *URLShortenResponse) GetResult() string {
-	if x != nil {
-		if x.xxx_hidden_Result != nil {
-			return *x.xxx_hidden_Result
-		}
-		return ""
+	if x != nil && x.Result != nil {
+		return *x.Result
 	}
 	return ""
 }
 
-func (x *URLShortenResponse) SetResult(v string) {
-	x.xxx_hidden_Result = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *URLShortenResponse) HasResult() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *URLShortenResponse) ClearResult() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Result = nil
-}
-
-type URLShortenResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Result *string
-}
-
-func (b0 URLShortenResponse_builder) Build() *URLShortenResponse {
-	m0 := &URLShortenResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Result != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Result = b.Result
-	}
-	return m0
-}
-
 type URLExpandRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            *string                `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *URLExpandRequest) Reset() {
@@ -211,57 +142,23 @@ func (x *URLExpandRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+// Deprecated: Use URLExpandRequest.ProtoReflect.Descriptor instead.
+func (*URLExpandRequest) Descriptor() ([]byte, []int) {
+	return file_proto_shortener_proto_rawDescGZIP(), []int{2}
+}
+
 func (x *URLExpandRequest) GetId() string {
-	if x != nil {
-		if x.xxx_hidden_Id != nil {
-			return *x.xxx_hidden_Id
-		}
-		return ""
+	if x != nil && x.Id != nil {
+		return *x.Id
 	}
 	return ""
 }
 
-func (x *URLExpandRequest) SetId(v string) {
-	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *URLExpandRequest) HasId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *URLExpandRequest) ClearId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Id = nil
-}
-
-type URLExpandRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Id *string
-}
-
-func (b0 URLExpandRequest_builder) Build() *URLExpandRequest {
-	m0 := &URLExpandRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Id = b.Id
-	}
-	return m0
-}
-
 type URLExpandResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Result      *string                `protobuf:"bytes,1,opt,name=result"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *string                `protobuf:"bytes,1,opt,name=result" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *URLExpandResponse) Reset() {
@@ -289,55 +186,23 @@ func (x *URLExpandResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+// Deprecated: Use URLExpandResponse.ProtoReflect.Descriptor instead.
+func (*URLExpandResponse) Descriptor() ([]byte, []int) {
+	return file_proto_shortener_proto_rawDescGZIP(), []int{3}
+}
+
 func (x *URLExpandResponse) GetResult() string {
-	if x != nil {
-		if x.xxx_hidden_Result != nil {
-			return *x.xxx_hidden_Result
-		}
-		return ""
+	if x != nil && x.Result != nil {
+		return *x.Result
 	}
 	return ""
 }
 
-func (x *URLExpandResponse) SetResult(v string) {
-	x.xxx_hidden_Result = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *URLExpandResponse) HasResult() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *URLExpandResponse) ClearResult() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Result = nil
-}
-
-type URLExpandResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Result *string
-}
-
-func (b0 URLExpandResponse_builder) Build() *URLExpandResponse {
-	m0 := &URLExpandResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Result != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Result = b.Result
-	}
-	return m0
-}
-
 type UserURLsResponse struct {
-	state          protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Url *[]*URLData            `protobuf:"bytes,1,rep,name=url"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           []*URLData             `protobuf:"bytes,1,rep,name=url" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UserURLsResponse) Reset() {
@@ -365,41 +230,24 @@ func (x *UserURLsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+// Deprecated: Use UserURLsResponse.ProtoReflect.Descriptor instead.
+func (*UserURLsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_shortener_proto_rawDescGZIP(), []int{4}
+}
+
 func (x *UserURLsResponse) GetUrl() []*URLData {
 	if x != nil {
-		if x.xxx_hidden_Url != nil {
-			return *x.xxx_hidden_Url
-		}
+		return x.Url
 	}
 	return nil
 }
 
-func (x *UserURLsResponse) SetUrl(v []*URLData) {
-	x.xxx_hidden_Url = &v
-}
-
-type UserURLsResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Url []*URLData
-}
-
-func (b0 UserURLsResponse_builder) Build() *UserURLsResponse {
-	m0 := &UserURLsResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_Url = &b.Url
-	return m0
-}
-
 type URLData struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ShortUrl    *string                `protobuf:"bytes,1,opt,name=short_url,json=shortUrl"`
-	xxx_hidden_OriginalUrl *string                `protobuf:"bytes,2,opt,name=original_url,json=originalUrl"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ShortUrl      *string                `protobuf:"bytes,1,opt,name=short_url,json=shortUrl" json:"short_url,omitempty"`
+	OriginalUrl   *string                `protobuf:"bytes,2,opt,name=original_url,json=originalUrl" json:"original_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *URLData) Reset() {
@@ -427,80 +275,23 @@ func (x *URLData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+// Deprecated: Use URLData.ProtoReflect.Descriptor instead.
+func (*URLData) Descriptor() ([]byte, []int) {
+	return file_proto_shortener_proto_rawDescGZIP(), []int{5}
+}
+
 func (x *URLData) GetShortUrl() string {
-	if x != nil {
-		if x.xxx_hidden_ShortUrl != nil {
-			return *x.xxx_hidden_ShortUrl
-		}
-		return ""
+	if x != nil && x.ShortUrl != nil {
+		return *x.ShortUrl
 	}
 	return ""
 }
 
 func (x *URLData) GetOriginalUrl() string {
-	if x != nil {
-		if x.xxx_hidden_OriginalUrl != nil {
-			return *x.xxx_hidden_OriginalUrl
-		}
-		return ""
+	if x != nil && x.OriginalUrl != nil {
+		return *x.OriginalUrl
 	}
 	return ""
-}
-
-func (x *URLData) SetShortUrl(v string) {
-	x.xxx_hidden_ShortUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
-}
-
-func (x *URLData) SetOriginalUrl(v string) {
-	x.xxx_hidden_OriginalUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *URLData) HasShortUrl() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *URLData) HasOriginalUrl() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *URLData) ClearShortUrl() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_ShortUrl = nil
-}
-
-func (x *URLData) ClearOriginalUrl() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_OriginalUrl = nil
-}
-
-type URLData_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	ShortUrl    *string
-	OriginalUrl *string
-}
-
-func (b0 URLData_builder) Build() *URLData {
-	m0 := &URLData{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.ShortUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
-		x.xxx_hidden_ShortUrl = b.ShortUrl
-	}
-	if b.OriginalUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_OriginalUrl = b.OriginalUrl
-	}
-	return m0
 }
 
 var File_proto_shortener_proto protoreflect.FileDescriptor
@@ -526,6 +317,18 @@ const file_proto_shortener_proto_rawDesc = "" +
 	"ShortenURL\x121.evlushin.shorturl.shortener.v1.URLShortenRequest\x1a2.evlushin.shorturl.shortener.v1.URLShortenResponse\x12p\n" +
 	"\tExpandURL\x120.evlushin.shorturl.shortener.v1.URLExpandRequest\x1a1.evlushin.shorturl.shortener.v1.URLExpandResponse\x12X\n" +
 	"\fListUserURLs\x12\x16.google.protobuf.Empty\x1a0.evlushin.shorturl.shortener.v1.UserURLsResponseB6Z4https://github.com/Evlushin/shorturl/proto/shortenerb\beditionsp\xe8\a"
+
+var (
+	file_proto_shortener_proto_rawDescOnce sync.Once
+	file_proto_shortener_proto_rawDescData []byte
+)
+
+func file_proto_shortener_proto_rawDescGZIP() []byte {
+	file_proto_shortener_proto_rawDescOnce.Do(func() {
+		file_proto_shortener_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_shortener_proto_rawDesc), len(file_proto_shortener_proto_rawDesc)))
+	})
+	return file_proto_shortener_proto_rawDescData
+}
 
 var file_proto_shortener_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_proto_shortener_proto_goTypes = []any{
