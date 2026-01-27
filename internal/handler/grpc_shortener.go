@@ -98,7 +98,7 @@ func (s *GRPCServer) ListUserURLs(ctx context.Context, _ *emptypb.Empty) (*pb.Us
 	if ok && len(md["user-id"]) > 0 {
 		userID = md["user-id"][0]
 	} else {
-		logger.Log.Error("user ID not found in config")
+		logger.Log.Debug("user ID not found in config")
 		return nil, status.Error(codes.Unauthenticated, "user ID not found in config")
 	}
 
