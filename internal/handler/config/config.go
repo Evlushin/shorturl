@@ -10,6 +10,7 @@ type TAudit struct {
 type Config struct {
 	ServerAddr    string `env:"SERVER_ADDRESS" env-default:"localhost:8080" env-description:"address of HTTP server"`
 	BaseAddr      string `env:"BASE_URL" env-default:"http://localhost:8080" env-description:"base address of the resulting shortened URL"`
+	GRPCAddr      string `env:"GRPC_ADDRESS" env-default:":50051" env-description:"address of GRPC server"`
 	TrustedSubnet string `json:"trusted_subnet" env:"TRUSTED_SUBNET" env-description:"trusted subnet"`
 	SecretKey     string `env:"SECRET_KEY" env-default:"{{uuid}}" env-description:"secret key"`
 	EnableHTTPS   bool   `env:"ENABLE_HTTPS" env-description:"enable https"`
