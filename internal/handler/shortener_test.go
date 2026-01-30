@@ -549,3 +549,70 @@ func Test_handlers_DeleteShortenerUrlsAPI(t *testing.T) {
 		})
 	}
 }
+
+func Test_handlers_GetStats(t *testing.T) {
+	h, err := getHandlersMemory()
+	require.NoError(t, err)
+
+	ts := httptest.NewServer(newRouter(h))
+	defer ts.Close()
+
+	type want struct {
+		code        int
+		request     string
+		contentType string
+	}
+	tests := []struct {
+		name string
+		want want
+	}{
+		{
+			name: "positive test #1",
+			want: want{
+				code: 200,
+				request: `[
+								{"correlation_id":"1","original_url":"https://practicum.yandex.ru/"},
+								{"correlation_id":"2","original_url":"https://www.google.com/"}
+						]`,
+				contentType: "application/json",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			requestSet, err := http.NewRequest(http.MethodPost, ts.URL+"/api/shorten/batch", strings.NewReader(test.want.request))
+			require.NoError(t, err)
+			requestSet.Header.Add("Content-Type", test.want.contentType)
+			resSet, err := ts.Client().Do(requestSet)
+			require.NoError(t, err)
+			defer resSet.Body.Close()
+
+			_, err = io.ReadAll(resSet.Body)
+			require.NoError(t, err)
+
+			requestGet, err := http.NewRequest(http.MethodGet, ts.URL+"/api/internal/stats", nil)
+			require.NoError(t, err)
+			requestGet.Header.Add("Content-Type", test.want.contentType)
+			resGet, err := ts.Client().Do(requestGet)
+			require.NoError(t, err)
+			defer resGet.Body.Close()
+
+			resBodyGet, err := io.ReadAll(resGet.Body)
+			require.NoError(t, err)
+
+			var response map[string]int
+
+			err = json.Unmarshal(resBodyGet, &response)
+			require.NoError(t, err)
+
+			assert.Contains(t, response, "urls", "JSON должен содержать ключ 'urls'")
+			assert.Contains(t, response, "users", "JSON должен содержать ключ 'users'")
+
+			assert.Equal(t, response["urls"], 2)
+			assert.Equal(t, response["users"], 1)
+
+			assert.Equal(t, test.want.code, resGet.StatusCode)
+			assert.Equal(t, test.want.contentType, resGet.Header.Get("Content-Type"))
+		})
+	}
+}

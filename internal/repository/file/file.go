@@ -99,6 +99,44 @@ func newErrGetShortenerNotFound(id string) error {
 	return fmt.Errorf("%w for id = %s", myerrors.ErrGetShortenerNotFound, id)
 }
 
+func (st *Store) GetStats(ctx context.Context) (*models.ResponseStats, error) {
+	st.mux.Lock()
+	defer st.mux.Unlock()
+
+	var res models.ResponseStats
+
+	if st.s == nil {
+		return &res, nil
+	}
+
+	uniqueURLSet := make(map[string]struct{})
+	userHasActive := make(map[string]bool) // userID → есть ли у него активные URL
+
+	var totalURLs int
+	for userID, userMap := range st.s {
+		for _, item := range userMap {
+			if !item.IsDeleted {
+				totalURLs++
+
+				uniqueURLSet[item.URL] = struct{}{}
+				userHasActive[userID] = true
+			}
+		}
+	}
+
+	res.URLs = uint32(len(uniqueURLSet))
+	uniqueUsers := uint32(0)
+	for _, hasActive := range userHasActive {
+		if hasActive {
+			uniqueUsers++
+		}
+	}
+
+	res.Users = uniqueUsers
+
+	return &res, nil
+}
+
 func (st *Store) DeleteShortenerUrls(ctx context.Context, req []models.RequestIDBatch, userID string) error {
 	st.mux.Lock()
 	defer st.mux.Unlock()

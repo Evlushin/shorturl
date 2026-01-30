@@ -34,6 +34,10 @@ import (
 // It provides methods to create, retrieve, and manage shortened URLs.
 type Shortener interface {
 
+	// GetStats get shortener statistics
+	// Get the number of URLs and the number of users
+	GetStats(ctx context.Context) (*models.ResponseStats, error)
+
 	// GetShortener retrieves a shortened URL by its ID.
 	// Returns the full URL if found, otherwise returns an error.
 	GetShortener(ctx context.Context, req *models.GetShortenerRequest) (*models.GetShortenerResponse, error)
@@ -84,6 +88,32 @@ func newHandlers(shortener Shortener, cfg config.Config, auditManager *subjects.
 		cfg:          cfg,
 		auditManager: auditManager,
 	}
+}
+
+// GetStats shortener statistics
+// Endpoint: GET /api/internal/stats
+// Returns:
+//   - HTTP 200 OK with JSON array of ResponseStats
+//   - HTTP 500 Internal Server Error on failure
+func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.shortener.GetStats(r.Context())
+	if err != nil {
+		logger.Log.Error("failed to get stats", zap.Error(err))
+		errorJSON(w, myerrors.ErrInternalServer.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	buf := new(bytes.Buffer)
+	err = json.NewEncoder(buf).Encode(stats)
+	if err != nil {
+		logger.Log.Error("failed json encode", zap.Error(err))
+		errorJSON(w, myerrors.ErrInternalServer.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf.Bytes())
 }
 
 // DeleteShortenerUrlsAPI handles the HTTP request to delete multiple shortened URLs.

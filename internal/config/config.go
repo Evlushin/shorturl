@@ -14,7 +14,7 @@ type Config struct {
 	LogLevel      string `env:"LOG_LEVEL" env-default:"info" env-description:"log level"`
 	FileStorePath string `env:"FILE_STORAGE_PATH" env-default:"" env-description:"address storage"`
 	DatabaseDsn   string `env:"DATABASE_DSN" env-default:"" env-description:"connection string"`
-	ConfigFile    string `env:"CONFIG" env-description:"config file"`
+	ConfigFile    string `env:"CONFIG" env-description:"path to the configuration file"`
 }
 
 func GetConfig() (Config, error) {
@@ -24,14 +24,15 @@ func GetConfig() (Config, error) {
 	flag.StringVar(&cfg.Handlers.Audit.AuditURL, "audit-url", "", "the full URL of the remote receiving server where the audit logs are sent")
 	flag.StringVar(&cfg.Handlers.ServerAddr, "a", "localhost:8080", "address of HTTP server")
 	flag.StringVar(&cfg.Handlers.BaseAddr, "b", "http://localhost:8080", "base address of the resulting shortened URL")
+	flag.StringVar(&cfg.Handlers.TrustedSubnet, "t", "", "trusted subnet")
 	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
 	//flag.StringVar(&cfg.FileStorePath, "f", "storage.txt", "address storage")
-	//flag.StringVar(&cfg.DatabaseDsn, "d", "host=127.127.126.41 port=5432 dbname=shorturl user=shorturl password=shorturl connect_timeout=10 sslmode=prefer", "connection string")
+	flag.StringVar(&cfg.DatabaseDsn, "d", "host=127.127.126.41 port=5432 dbname=shorturl user=shorturl password=shorturl connect_timeout=10 sslmode=prefer", "connection string")
 	flag.StringVar(&cfg.FileStorePath, "f", "", "address storage")
-	flag.StringVar(&cfg.DatabaseDsn, "d", "", "connection string")
+	//flag.StringVar(&cfg.DatabaseDsn, "d", "", "connection string")
 	flag.StringVar(&cfg.Handlers.SecretKey, "k", uuid.NewString(), "secret key")
 	flag.BoolVar(&cfg.Handlers.EnableHTTPS, "s", false, "enable https")
-	flag.StringVar(&cfg.ConfigFile, "c", ".env", "config file")
+	flag.StringVar(&cfg.ConfigFile, "c", ".env", "path to the configuration file")
 	flag.Parse()
 	if err := cleanenv.ReadConfig(cfg.ConfigFile, &cfg); err != nil {
 		return Config{}, fmt.Errorf("read config: %w", err)

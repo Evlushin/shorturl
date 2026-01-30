@@ -1,111 +1,13 @@
 package handler
 
 import (
-	"context"
-	"errors"
-	"net"
 	"net/http"
 	"net/http/pprof"
-	"os"
-	"sync"
-	"time"
 
-	"github.com/Evlushin/shorturl/internal/handler/config"
 	"github.com/Evlushin/shorturl/internal/logger"
 	"github.com/Evlushin/shorturl/internal/middleware"
-	"github.com/Evlushin/shorturl/internal/observers"
 	"github.com/go-chi/chi/v5"
-	"go.uber.org/zap"
 )
-
-const defaultShutdownCtxTimeout = 10 * time.Second
-
-func Serve(ctx context.Context, cfg config.Config, shortener Shortener) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	auditManager := observers.InitAuditObservers(ctx, cfg)
-	h := newHandlers(shortener, cfg, auditManager)
-	router := newRouter(h)
-
-	httpServer := &http.Server{
-		Addr:         cfg.ServerAddr,
-		Handler:      router,
-		ReadTimeout:  cfg.ReadTimeout,  // макс. время на чтение запроса
-		WriteTimeout: cfg.WriteTimeout, // макс. время на запись ответа
-		IdleTimeout:  cfg.IdleTimeout,  // макс. время бездействия соединения
-	}
-
-	var wg sync.WaitGroup
-
-	// Запуск сервера
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		logger.Log.Info("starting server", zap.String("addr", cfg.ServerAddr))
-		if cfg.EnableHTTPS {
-			// Проверка наличия сертификатов
-			if cfg.TLSCertFile == "" || cfg.TLSKeyFile == "" {
-				logger.Log.Error("TLS enabled but certificate or key file not provided")
-				cancel()
-				return
-			}
-
-			if !certFilesExist(cfg.TLSCertFile, cfg.TLSKeyFile) {
-				logger.Log.Error("no certificates")
-				cancel()
-				return
-			}
-
-			// Запуск HTTPS-сервера
-			err := httpServer.ListenAndServeTLS(cfg.TLSCertFile, cfg.TLSKeyFile)
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				logger.Log.Error("error serving HTTPS", zap.Error(err))
-				cancel()
-			}
-		} else {
-
-			lis, err := net.Listen("tcp", cfg.ServerAddr)
-			if err != nil {
-				logger.Log.Error("failed to listen", zap.Error(err))
-				cancel()
-				return
-			}
-			if err := httpServer.Serve(lis); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				logger.Log.Error("error serving", zap.Error(err))
-				cancel()
-			}
-		}
-	}()
-
-	// Завершение
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		<-ctx.Done()
-
-		shutdownCtx, shutdownCancel := context.WithTimeout(ctx, defaultShutdownCtxTimeout)
-		defer shutdownCancel()
-
-		// Завершение http сервера
-		if err := httpServer.Shutdown(shutdownCtx); err != nil {
-			logger.Log.Error("error shutting down http server", zap.Error(err))
-		}
-
-		// Завершение auditManager
-		auditManager.Stop()
-
-		logger.Log.Info("server shutdown complete")
-	}()
-
-	wg.Wait()
-}
-
-func certFilesExist(certFile, keyFile string) bool {
-	_, errCert := os.Stat(certFile)
-	_, errKey := os.Stat(keyFile)
-	return errCert == nil && errKey == nil
-}
 
 func newRouter(h *Handlers) *chi.Mux {
 	r := chi.NewRouter()
@@ -118,6 +20,7 @@ func newRouter(h *Handlers) *chi.Mux {
 		r.Handle("/cmdline", http.HandlerFunc(pprof.Cmdline))
 		r.Handle("/heap", pprof.Handler("heap"))
 	})
+
 	r.Group(func(r chi.Router) {
 		r.Use(logger.RequestLogger)
 		r.Use(middleware.GzipMiddleware)
@@ -137,6 +40,10 @@ func newRouter(h *Handlers) *chi.Mux {
 					r.Get("/", h.GetShortenerUrlsAPI)
 					r.Delete("/", h.DeleteShortenerUrlsAPI)
 				})
+			})
+			r.Route("/internal", func(r chi.Router) {
+				r.Use(middleware.TrustedSubnetMiddleware(h.cfg.TrustedSubnet))
+				r.Get("/stats", h.GetStats)
 			})
 		})
 	})

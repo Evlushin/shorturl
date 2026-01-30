@@ -51,6 +51,10 @@ func (f *Shortener) Ping(ctx context.Context) error {
 	return f.store.Ping(ctx)
 }
 
+func (f *Shortener) GetStats(ctx context.Context) (*models.ResponseStats, error) {
+	return f.store.GetStats(ctx)
+}
+
 func (f *Shortener) GetShortener(ctx context.Context, req *models.GetShortenerRequest) (*models.GetShortenerResponse, error) {
 	if err := GetShortenerValidateRequest(req); err != nil {
 		return nil, err
